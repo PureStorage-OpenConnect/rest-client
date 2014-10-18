@@ -1,0 +1,2 @@
+include CHANGES.txt LICENSE.txt README.rst
+recursive-include docs *
