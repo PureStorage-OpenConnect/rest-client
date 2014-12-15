@@ -13,7 +13,7 @@ import requests
 from distutils.version import StrictVersion
 
 # The current version of this library.
-VERSION = "1.2.0"
+VERSION = "1.4.0"
 
 
 class FlashArray(object):
@@ -68,7 +68,7 @@ class FlashArray(object):
 
     """
 
-    supported_rest_versions = ["1.2", "1.1", "1.0"]
+    supported_rest_versions = ["1.4", "1.3", "1.2", "1.1", "1.0"]
 
     def __init__(self, target, username=None, password=None,
                  api_token=None, rest_version=None):
@@ -83,9 +83,11 @@ class FlashArray(object):
         self._cookies = {}
         self._target = target
 
-        self._rest_version = (
-            self._check_rest_version(rest_version) if rest_version
-            else self._choose_rest_version())
+        self._rest_version = rest_version
+        if self._rest_version:
+            self._rest_version = self._check_rest_version(rest_version)
+        else:
+            self._rest_version = self._choose_rest_version()
 
         self._renegotiate_rest_version = False if rest_version else True
         self._api_token = (api_token or self._obtain_api_token(username, password))
@@ -473,7 +475,6 @@ class FlashArray(object):
                            **GET volume/:volume**
         :type \*\*kwargs: optional
 
-
         :returns: A list describing snapshots of the volume if the paramater
                   snap is passed as True, else a dictionary describing the
                   volume.
@@ -481,6 +482,27 @@ class FlashArray(object):
 
         """
         return self._request("GET", "volume/{0}".format(volume), kwargs)
+
+    def list_volume_block_differences(self, volume, **kwargs):
+        """Return a list of block differences for the specified volume.
+
+        ::param volume: Name of the volume to get information about.
+        :type volume: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET volume/:volume/diff**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing block differences between
+                  the specified volume and the base volume.
+        :rtype: list
+
+        .. note::
+
+            Requires use of REST API 1.3 or later.
+
+        """
+        return self._request("GET", "volume/{0}/diff".format(volume), kwargs)
 
     def list_volume_private_connections(self, volume):
         """Return a list of dictionaries describing connected hosts.
@@ -1280,7 +1302,7 @@ class FlashArray(object):
         return self.set_directory_service(action="test")
 
     #
-    # Support-related methods
+    # Support related methods
     #
 
     def _set_phonehome(self, **kwargs):
@@ -1629,7 +1651,7 @@ class FlashArray(object):
         return self.set_snmp_manager(manager, action="test")
 
     #
-    # Replication-related methods
+    # Replication related methods
     # Note: These methods only work with REST API 1.2 and later
     #
 
@@ -1695,7 +1717,7 @@ class FlashArray(object):
         """
         return self._request("GET", "array/connection")
 
-    # Protection group-related methods
+    # Protection group related methods
 
     def create_pgroup(self, pgroup, **kwargs):
         """Create pgroup with specified name.
@@ -1806,7 +1828,6 @@ class FlashArray(object):
 
         """
         return self.set_pgroup(pgroup, replicate_enabled=True)
-
 
     def disable_pgroup_snapshots(self, pgroup):
         """Disable snapshot schedule for pgroup.
@@ -1948,10 +1969,70 @@ class FlashArray(object):
         """
         return self._request("PUT", "pgroup/{0}".format(pgroup), kwargs)
 
+    #
+    # SSL Certificate related methods.
+    # Note: These methods only work with REST API 1.3 and later
+    #
+
+    def get_certificate(self, **kwargs):
+        """Get the attributes of the current array certificate.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET cert**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the configured array certificate.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.3 or later.
+
+        """
+        return self._request("GET", "cert", kwargs)
+
+    def get_certificate_signing_request(self, **kwargs):
+        """Constructs a certificate signing request (CSR) for signing by a
+        certificate authority (CA).
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET cert/certificate_signing_request**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary mapping "certificate_signing_request" to the CSR.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.3 or later.
+
+        """
+        return self._request("GET", "cert/certificate_signing_request", kwargs)
+
+    def set_certificate(self, **kwargs):
+        """Creates a self-signed certificate or imports a certificate signed
+        by a certificate authority (CA).
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT cert**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the configured array certificate.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.3 or later.
+
+        """
+        return self._request("PUT", "cert", kwargs)
+
 
 class PureError(Exception):
     """Exception type raised by FlashArray object.
-
 
     :param reason: A message describing why the error occurred.
     :type reason: str
@@ -2004,8 +2085,8 @@ class PureHTTPError(PureError):
         self.text = response.text
 
     def __str__(self):
-        msg = ("PureHTTPError status code {0} returned by REST version {1} at "
-               "{2}: {3}\n{4}")
+        msg = ("PureHTTPError status code {0} returned by REST "
+               "version {1} at {2}: {3}\n{4}")
         return msg.format(self.code, self.rest_version, self.target,
                           self.reason, self.text)
 
