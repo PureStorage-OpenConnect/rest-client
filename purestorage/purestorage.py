@@ -486,7 +486,7 @@ class FlashArray(object):
     def list_volume_block_differences(self, volume, **kwargs):
         """Return a list of block differences for the specified volume.
 
-        ::param volume: Name of the volume to get information about.
+        :param volume: Name of the volume to get information about.
         :type volume: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
