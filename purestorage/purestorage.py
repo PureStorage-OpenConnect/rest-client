@@ -13,7 +13,7 @@ import requests
 from distutils.version import StrictVersion
 
 # The current version of this library.
-VERSION = "1.4.0"
+VERSION = "1.6.0"
 
 
 class FlashArray(object):
@@ -32,6 +32,13 @@ class FlashArray(object):
     :param rest_version: REST API version to use when communicating with
                          target array.
     :type rest_version: str, optional
+    :param verify_https: Enable SSL certificate verification for HTTPS requests.
+    :type verify_https: bool, optional
+    :param ssl_cert: Path to SSL certificate or CA Bundle file. Ignored if
+                     verify_https=False.
+    :type ssl_cert: str, optional
+    :param user_agent: String to be used as the HTTP User-Agent for requests.
+    :type user_agent: str, optional
 
     :raises: :class:`PureError`
 
@@ -68,10 +75,11 @@ class FlashArray(object):
 
     """
 
-    supported_rest_versions = ["1.4", "1.3", "1.2", "1.1", "1.0"]
+    supported_rest_versions = ["1.6", "1.5", "1.4", "1.3", "1.2", "1.1", "1.0"]
 
-    def __init__(self, target, username=None, password=None,
-                 api_token=None, rest_version=None):
+    def __init__(self, target, username=None, password=None, api_token=None,
+                 rest_version=None, verify_https=False, ssl_cert=None,
+                 user_agent=None):
 
         if not api_token and not (username and password):
             raise ValueError(
@@ -83,13 +91,19 @@ class FlashArray(object):
         self._cookies = {}
         self._target = target
 
+        self._renegotiate_rest_version = False if rest_version else True
+
+        self._verify_https = verify_https
+        self._ssl_cert = ssl_cert
+
+        self._user_agent = user_agent
+
         self._rest_version = rest_version
         if self._rest_version:
             self._rest_version = self._check_rest_version(rest_version)
         else:
             self._rest_version = self._choose_rest_version()
 
-        self._renegotiate_rest_version = False if rest_version else True
         self._api_token = (api_token or self._obtain_api_token(username, password))
         self._start_session()
 
@@ -101,10 +115,19 @@ class FlashArray(object):
             url = "https://{0}/api/{1}/{2}".format(
                 self._target, self._rest_version, path)
         headers = {"Content-Type": "application/json"}
+        if self._user_agent:
+            headers['User-Agent'] = self._user_agent
+
         body = json.dumps(data).encode("utf-8")
+        verify = False
+        if self._verify_https:
+            if self._ssl_cert:
+                verify = self._ssl_cert
+            else:
+                verify = True
         try:
             response = requests.request(method, url, data=body, headers=headers,
-                                        cookies=self._cookies, verify=False)
+                                        cookies=self._cookies, verify=verify)
         except requests.exceptions.RequestException as err:
             # error outside scope of HTTP status codes
             # e.g. unable to resolve domain name
@@ -112,7 +135,10 @@ class FlashArray(object):
 
         if response.status_code == 200:
             if "application/json" in response.headers.get("Content-Type", ""):
-                self._cookies.update(response.cookies)
+                if response.cookies:
+                    self._cookies.update(response.cookies)
+                else:
+                    self._cookies.clear()
                 return response.json()
             raise PureError("Response not in JSON: " + response.text)
         elif response.status_code == 401 and reestablish_session:
@@ -543,7 +569,7 @@ class FlashArray(object):
         return self._request("GET", "volume", kwargs)
 
     def rename_volume(self, volume, name):
-        """Set the name of a volume.
+        """Rename a volume.
 
         :param volume: Name of the volume to be renamed.
         :type volume: str
@@ -717,7 +743,7 @@ class FlashArray(object):
         return self._request("GET", "host", kwargs)
 
     def rename_host(self, host, name):
-        """Set the name of a host.
+        """Rename a host.
 
         :param host: Name of host to be renamed.
         :type host: str
@@ -855,7 +881,7 @@ class FlashArray(object):
         return self._request("GET", "hgroup", kwargs)
 
     def rename_hgroup(self, hgroup, name):
-        """Set the name of a host group.
+        """Rename a host group.
 
         :param hgroup: Name of hgroup to be renamed.
         :type hgroup: str
@@ -949,6 +975,195 @@ class FlashArray(object):
         """
         return self._request("PUT", "network/{0}".format(interface), kwargs)
 
+    def create_subnet(self, subnet, prefix, **kwargs):
+        """Create a subnet.
+
+        :param subnet: Name of subnet to be created.
+        :type subnet: str
+        :param prefix: Routing prefix of subnet to be created.
+        :type prefix: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST subnet/:subnet**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the created subnet.
+        :rtype: dict
+
+        .. note::
+
+            prefix should be specified as an IPv4 CIDR address.
+            ("xxx.xxx.xxx.xxx/nn", representing prefix and prefix length)
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        data = {"prefix": prefix}
+        data.update(kwargs)
+        return self._request("POST", "subnet/{0}".format(subnet), data)
+
+    def delete_subnet(self, subnet):
+        """Delete a subnet.
+
+        :param subnet: Name of the subnet to be deleted.
+        :type subnet: str
+
+        :returns: A dictionary mapping "name" to subnet.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self._request("DELETE", "subnet/{0}".format(subnet))
+
+    def disable_subnet(self, subnet):
+        """Disable a subnet.
+
+        :param subnet: Name of subnet to be disabled.
+        :type subnet: str
+
+        :returns: A dictionary describing the subnet.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self.set_subnet(subnet, enabled=False)
+
+    def enable_subnet(self, subnet):
+        """Enable a subnet.
+
+        :param subnet: Name of subnet to be enabled.
+        :type subnet: str
+
+        :returns: A dictionary describing the subnet.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self.set_subnet(subnet, enabled=True)
+
+    def get_subnet(self, subnet):
+        """Return a dictionary describing a subnet.
+
+        :param subnet: Name of the subnet to get information about.
+        :type subnet: str
+
+        :returns: A dictionary describing the subnet.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self._request("GET", "subnet/{0}".format(subnet))
+
+    def list_subnets(self, **kwargs):
+        """Get a list of dictionaries describing each subnet.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET subnet**
+
+        :type \*\*kwargs: optional
+        :returns: A list of dictionaries describing each subnet.
+        :rtype: list
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self._request("GET", "subnet", kwargs)
+
+    def rename_subnet(self, subnet, name):
+        """Rename a subnet.
+
+        :param subnet: Current name of the subnet to be renamed.
+        :type subnet: str
+        :param name: New name of the subnet to be renamed.
+        :type name: str
+
+        :returns: A dictionary describing the renamed subnet.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self.set_subnet(subnet, name=name)
+
+    def set_subnet(self, subnet, **kwargs):
+        """Set subnet attributes.
+
+        :param subnet: Name of subnet for which to set attribute.
+        :type subnet: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT subnet/:subnet**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the subnet.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self._request("PUT", "subnet/{0}".format(subnet), kwargs)
+
+    def create_vlan_interface(self, interface, subnet, **kwargs):
+        """Create a vlan interface.
+
+        :param interface: Name of interface to be created.
+        :type interface: str
+        :param subnet: Subnet associated with interface to be created
+        :type subnet: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST network/vif/:vlan_interface**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the created interface
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        data = {"subnet": subnet}
+        data.update(kwargs)
+        return self._request("POST", "network/vif/{0}".format(interface), data)
+
+    def delete_vlan_interface(self, interface):
+        """Delete a vlan interface.
+
+        :param interface: Name of the interface to be deleted.
+        :type interface: str
+
+        :returns: A dictionary mapping "name" to interface.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self._request("DELETE", "network/{0}".format(interface))
+
     # DNS methods
 
     def get_dns(self):
@@ -1015,26 +1230,35 @@ class FlashArray(object):
         """
         return self._request("GET", "drive")
 
-    def get_hardware(self, component):
+    def get_hardware(self, component, **kwargs):
         """Returns a dictionary describing a hardware component.
 
         :param component: Name of hardware component to get information about.
         :type component: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET hardware/:component**
+        :type \*\*kwargs: optional
 
         :returns: A dictionary describing component.
         :rtype: dict
 
         """
-        return self._request("GET", "hardware/{0}".format(component))
+        return self._request("GET", "hardware/{0}".format(component), kwargs)
 
-    def list_hardware(self):
+    def list_hardware(self, **kwargs):
         """Returns a list of dictionaries describing hardware.
 
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET hardware**
+
+        :type \*\*kwargs: optional
         :returns: A list of dictionaries describing each hardware component.
         :rtype: list
 
         """
-        return self._request("GET", "hardware")
+        return self._request("GET", "hardware", kwargs)
 
     def set_hardware(self, component, **kwargs):
         """Set an attribute of a hardware component.
@@ -1669,7 +1893,7 @@ class FlashArray(object):
                            **POST array/connection**
         :type \*\*kwargs: optional
 
-        :returns: A dictionary describing the connection with the other array.
+        :returns: A dictionary describing the connection to the other array.
         :rtype: dict
 
         .. note::
@@ -1690,10 +1914,10 @@ class FlashArray(object):
     def disconnect_array(self, address):
         """Disconnect this array from another one.
 
-        :param connection: IP address or DNS name of other array.
-        :type connection: str
+        :param address: IP address or DNS name of other array.
+        :type address: str
 
-        :returns: A dictionary mapping "name" to connection.
+        :returns: A dictionary mapping "name" to address.
         :rtype: dict
 
         .. note::
@@ -1704,7 +1928,7 @@ class FlashArray(object):
         return self._request("DELETE",
                              "array/connection/{0}".format(address))
 
-    def list_array_connections(self):
+    def list_array_connections(self, **kwargs):
         """Return list of connected arrays.
 
         :returns: A list of dictionaries describing each connection to another array.
@@ -1715,7 +1939,27 @@ class FlashArray(object):
             Requires use of REST API 1.2 or later.
 
         """
-        return self._request("GET", "array/connection")
+        return self._request("GET", "array/connection", kwargs)
+
+    def throttle_array_connection(self, address, **kwargs):
+        """Set bandwidth limits on a connection.
+
+        :param address: IP address or DNS name of other array.
+        :type address: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT array/connection/:address**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the connection to the other array.
+        :rtype: dict
+
+        .. note::
+
+            Requires use of REST API 1.5 or later.
+
+        """
+        return self._request("PUT", "array/connection/{0}".format(address), kwargs)
 
     # Protection group related methods
 
@@ -1932,7 +2176,7 @@ class FlashArray(object):
         return self.set_pgroup(pgroup, action="recover")
 
     def rename_pgroup(self, pgroup, name):
-        """Renames a pgroup.
+        """Rename a pgroup.
 
         :param pgroup: Current name of pgroup to be renamed.
         :type pgroup: str
