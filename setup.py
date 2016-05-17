@@ -1,10 +1,8 @@
-import purestorage
-
 from setuptools import setup
 
 setup(
     name="purestorage",
-    version=purestorage.VERSION,
+    version="1.4.0",
     description="Pure Storage FlashArray REST Client",
     keywords=["pure", "storage", "flasharray", "rest", "client"],
     url="",
