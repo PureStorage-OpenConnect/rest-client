@@ -6,9 +6,9 @@ import json
 import mock
 import requests
 
-from pure.rest.client.purestorage import FlashArray, PureError, PureHTTPError
+from purestorage import FlashArray, PureError, PureHTTPError
 
-CLIENT_PATH = "pure.rest.client.purestorage.purestorage"
+CLIENT_PATH = "purestorage.purestorage"
 ARRAY_OBJ = CLIENT_PATH + ".FlashArray"
 
 class TestBase(object):

@@ -105,9 +105,10 @@ added to the hgroup as part of creation or in a subsequent set call.
 
 .. code-block:: python
 
-        >>> array.create_host("host1", iqnlist=["iqn1", "iqn2"])
+        >>> array.create_host("host1", iqnlist=["iqn.2001-04.com.example:diskarrays-sn-a8675308",
+                                                "iqn.2001-04.com.example:diskarrays-sn-a8675309"])
         {
-         u'iqn': [u'iqn1', u'iqn2'],
+         u'iqn': [u'iqn.2001-04.com.example:diskarrays-sn-a8675308', u'iqn.2001-04.com.example:diskarrays-sn-a8675309'],
          u'wwn': [],
          u'name': u'host1'
         }
@@ -294,3 +295,29 @@ or explicitly eradicated.
         }
         >>> array.list_volumes(pending_only=True)
         []
+
+
+Enable Secure HTTPS Requests
+----------------------------
+
+By default the requests being made will not verify the SSL certificate of the
+target array. Requests made this way will log a InsecureRequestWarning.
+
+To enable verification use the verify_https flag:
+
+.. code-block:: python
+
+    >>> array = purestorage.FlashArray("localhost", "pureuser", "pureuser", verify_https=True)
+
+
+This does require that the target array has a trusted certificate and will
+be validated correctly by the system making the request.
+
+If using an 'untrusted' certificate (e.g. self-signed certificate) you can
+optionally pass in a path to the certificate file:
+
+.. code-block:: python
+
+    >>> array = purestorage.FlashArray("localhost", "pureuser", "pureuser", verify_https=True,
+                                       ssl_cert="/etc/ssl/certs/pure-self-signed.crt")
+

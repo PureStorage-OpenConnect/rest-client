@@ -13,7 +13,7 @@ import requests
 from distutils.version import StrictVersion
 
 # The current version of this library.
-VERSION = "1.6.0"
+VERSION = "1.6.1"
 
 
 class FlashArray(object):
@@ -1069,7 +1069,7 @@ class FlashArray(object):
         return self._request("GET", "subnet/{0}".format(subnet))
 
     def list_subnets(self, **kwargs):
-        """Get a list of dictionaries describing each subnet.
+        """Get a list of dictionaries describing subnets.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1125,7 +1125,7 @@ class FlashArray(object):
         return self._request("PUT", "subnet/{0}".format(subnet), kwargs)
 
     def create_vlan_interface(self, interface, subnet, **kwargs):
-        """Create a vlan interface.
+        """Create a vlan interface
 
         :param interface: Name of interface to be created.
         :type interface: str

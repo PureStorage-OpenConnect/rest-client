@@ -33,6 +33,14 @@ Installation
  $ python setup.py install
 
 
+Tests
+=====
+From the root directory of the rest-client
+::
+
+ $ PYTHONPATH=$(pwd):$PYTHONPATH py.test test/*.py
+
+
 Files
 =====
 * purestorage/ -- Contains library code.
