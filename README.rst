@@ -45,6 +45,7 @@ Files
 =====
 * purestorage/ -- Contains library code.
 * docs/ -- Contains API documentation, Makefile and conf.py.
-* CHANGES.rst -- Library change log.
+* docs/changelog.rst -- Library change log.
+* test/ -- Contains tests for this library.
 * LICENSE.txt -- Library BSD 2-Clause license.
-* README.txt -- This document.
+* README.rst -- This document.
