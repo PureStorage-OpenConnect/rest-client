@@ -10,4 +10,5 @@ Version Date       Notes
 1.4.0   12/15/2014 Add support for REST 1.3 and 1.4
 1.6.0   05/17/2016 Add support for REST 1.5 and 1.6
 1.6.1   05/30/2016 Minor bug fixes and sync code between GitHub and PyPI
+1.8.0   11/02/2016 Add support for REST 1.7 and 1.8
 ======= ========== =====

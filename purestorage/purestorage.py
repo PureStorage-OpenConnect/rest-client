@@ -13,7 +13,7 @@ import requests
 from distutils.version import StrictVersion
 
 # The current version of this library.
-VERSION = "1.6.1"
+VERSION = "1.8.0"
 
 
 class FlashArray(object):
@@ -75,7 +75,17 @@ class FlashArray(object):
 
     """
 
-    supported_rest_versions = ["1.6", "1.5", "1.4", "1.3", "1.2", "1.1", "1.0"]
+    supported_rest_versions = [
+            "1.8",
+            "1.7",
+            "1.6",
+            "1.5",
+            "1.4",
+            "1.3",
+            "1.2",
+            "1.1",
+            "1.0",
+        ]
 
     def __init__(self, target, username=None, password=None, api_token=None,
                  rest_version=None, verify_https=False, ssl_cert=None,
@@ -139,7 +149,13 @@ class FlashArray(object):
                     self._cookies.update(response.cookies)
                 else:
                     self._cookies.clear()
-                return response.json()
+                content = response.json()
+                if isinstance(content, list):
+                    content = ResponseList(content)
+                elif isinstance(content, dict):
+                    content = ResponseDict(content)
+                content.headers = response.headers
+                return content
             raise PureError("Response not in JSON: " + response.text)
         elif response.status_code == 401 and reestablish_session:
             self._start_session()
@@ -235,7 +251,7 @@ class FlashArray(object):
         """Enable root lockout from the array at the physical console.
 
         :returns: A dictionary mapping "console_lock" to "enabled".
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_console_lock(enabled=True)
@@ -244,7 +260,7 @@ class FlashArray(object):
         """Disable root lockout from the array at the physical console.
 
         :returns: A dictionary mapping "console_lock" to "disabled".
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_console_lock(enabled=False)
@@ -260,7 +276,7 @@ class FlashArray(object):
         :returns: A dictionary describing the array or a list of dictionaries
                   describing multiple array attributes, depending on the
                   arguments passed in.
-        :rtype: dict or list
+        :rtype: ResponseDict or ResponseList
 
         """
         return self._request("GET", "array", kwargs)
@@ -270,7 +286,7 @@ class FlashArray(object):
 
         :returns: A dictionary mapping "console_lock" to "enabled" if
                   console_lock is enabled, else "disabled".
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "array/console_lock")
@@ -282,7 +298,7 @@ class FlashArray(object):
         :param type: str
 
         :returns: A dictionary mapping "array_name" to name.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.set(name=name)
@@ -297,7 +313,7 @@ class FlashArray(object):
 
         :returns: A dictionary mapping the parameter that was set to its
                   new value.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("PUT", "array", kwargs)
@@ -321,7 +337,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the new snapshot.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.create_snapshots([volume], **kwargs)[0]
@@ -337,7 +353,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing the new snapshots.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         data = {"source": volumes, "snap": True}
@@ -354,7 +370,7 @@ class FlashArray(object):
         :type size: int or str
 
         :returns: A dictionary describing the created volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -398,7 +414,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the destination volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         data = {"source": source}
@@ -412,7 +428,7 @@ class FlashArray(object):
         :type volume: str
 
         :returns: A dictionary mapping "name" to volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. warnings also::
 
@@ -430,7 +446,7 @@ class FlashArray(object):
         :type volume: str
 
         :returns: A dictionary mapping "name" to volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -456,7 +472,7 @@ class FlashArray(object):
 
         :returns: A dictionary mapping "name" to volume and "size" to the volume's
                   new size in bytes.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -504,10 +520,48 @@ class FlashArray(object):
         :returns: A list describing snapshots of the volume if the paramater
                   snap is passed as True, else a dictionary describing the
                   volume.
-        :rtype: dict or list
+        :rtype: ResponseDict or ResponseList
 
         """
         return self._request("GET", "volume/{0}".format(volume), kwargs)
+
+    def add_volume(self, volume, pgroup):
+        """Add a volume to a pgroup.
+
+        :param volume: Name of the volume to add to pgroup.
+        :type volume: str
+        :param pgroup: pgroup to which to add volume.
+        :type pgroup: str
+
+        :returns: A dictionary mapping "name" to volume and "protection_group"
+                  to pgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.7 or later.
+
+        """
+        return self._request("POST", "volume/{0}/pgroup/{1}".format(volume, pgroup))
+
+    def remove_volume(self, volume, pgroup):
+        """Remove a volume from a pgroup.
+
+        :param volume: Name of the volume to remove from pgroup.
+        :type volume: str
+        :param pgroup: pgroup from which to remove volume.
+        :type pgroup: str
+
+        :returns: A dictionary mapping "name" to volume and "protection_group"
+                  to pgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.7 or later.
+
+        """
+        return self._request("DELETE", "volume/{0}/pgroup/{1}".format(volume, pgroup))
 
     def list_volume_block_differences(self, volume, **kwargs):
         """Return a list of block differences for the specified volume.
@@ -521,7 +575,7 @@ class FlashArray(object):
 
         :returns: A list of dictionaries describing block differences between
                   the specified volume and the base volume.
-        :rtype: list
+        :rtype: ResponseList
 
         .. note::
 
@@ -530,29 +584,29 @@ class FlashArray(object):
         """
         return self._request("GET", "volume/{0}/diff".format(volume), kwargs)
 
-    def list_volume_private_connections(self, volume):
+    def list_volume_private_connections(self, volume, **kwargs):
         """Return a list of dictionaries describing connected hosts.
 
         :param volume: Name of the volume for which to list the private connections.
         :type volume: str
 
         :returns: A list of dictionaries describing the volume's private connections.
-        :rtype: list
+        :rtype: ResponseList
 
         """
-        return self._request("GET", "volume/{0}/host".format(volume))
+        return self._request("GET", "volume/{0}/host".format(volume), kwargs)
 
-    def list_volume_shared_connections(self, volume):
+    def list_volume_shared_connections(self, volume, **kwargs):
         """Return a list of dictionaries describing connected host groups.
 
         :param volume: Name of the volume for which to list the shared connections.
         :type volume: str
 
         :returns: A list of dictionaries describing the volume's shared connections.
-        :rtype: list
+        :rtype: ResponseList
 
         """
-        return self._request("GET", "volume/{0}/hgroup".format(volume))
+        return self._request("GET", "volume/{0}/hgroup".format(volume), kwargs)
 
     def list_volumes(self, **kwargs):
         """Return a list of dictionaries describing each volume.
@@ -563,7 +617,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing each volume.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "volume", kwargs)
@@ -577,7 +631,7 @@ class FlashArray(object):
         :type name: str
 
         :returns: A dictionary mapping "name" to name.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -594,7 +648,7 @@ class FlashArray(object):
         :type volume: str
 
         :returns: A dictionary mapping "name" to volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -615,7 +669,7 @@ class FlashArray(object):
 
         :returns: A dictionary mapping "name" to volume and "size" to the
                   volume's new size in bytes.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. warnings also::
 
@@ -647,7 +701,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the connection between the host and volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request(
@@ -664,7 +718,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created host.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("POST", "host/{0}".format(host), kwargs)
@@ -676,7 +730,7 @@ class FlashArray(object):
         :type host: str
 
         :returns: A dictionary mapping "name" to host.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("DELETE", "host/{0}".format(host))
@@ -690,7 +744,7 @@ class FlashArray(object):
         :type volume: str
 
         :returns: A dictionary mapping "name" to host and "vol" to volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("DELETE", "host/{0}/volume/{1}".format(host,
@@ -707,10 +761,44 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing host.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "host/{0}".format(host), kwargs)
+
+    def add_host(self, host, pgroup):
+        """Add a host to a pgroup.
+
+        :param host: Name of the host to add to pgroup.
+        :type host: str
+        :param pgroup: pgroup to which to add host.
+        :type pgroup: str
+
+        :returns: A dictionary mapping "name" to host and "protection_group"
+                  to pgroup.
+        :rtype: ResponseDict
+
+        """
+        return self._request("POST", "host/{0}/pgroup/{1}".format(host, pgroup))
+
+    def remove_host(self, host, pgroup):
+        """Remove a host from a pgroup.
+
+        :param host: Name of the host to remove from pgroup.
+        :type host: str
+        :param pgroup: pgroup from which to remove host.
+        :type pgroup: str
+
+        :returns: A dictionary mapping "name" to host and "protection_group"
+                  to pgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.7 or later.
+
+        """
+        return self._request("DELETE", "host/{0}/pgroup/{1}".format(host, pgroup))
 
     def list_host_connections(self, host, **kwargs):
         """Return a list of dictionaries describing connected volumes.
@@ -723,7 +811,7 @@ class FlashArray(object):
                            **GET host/:host/volume**
 
         :returns: A list of dictionaries describing host's connections.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "host/{0}/volume".format(host), kwargs)
@@ -737,7 +825,7 @@ class FlashArray(object):
                            **GET host**
 
         :returns: A list of dictionaries describing each host.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "host", kwargs)
@@ -751,7 +839,7 @@ class FlashArray(object):
         :type name: str
 
         :returns: A dictionary mapping "name" to name.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.set_host(host, name=name)
@@ -767,7 +855,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing host.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("PUT", "host/{0}".format(host), kwargs)
@@ -789,7 +877,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the connection between the hgroup and volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request(
@@ -806,7 +894,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created hgroup
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("POST", "hgroup/{0}".format(hgroup), kwargs)
@@ -818,7 +906,7 @@ class FlashArray(object):
         :type hgroup: str
 
         :returns: A dictionary mapping "name" to hgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("DELETE", "hgroup/{0}".format(hgroup))
@@ -832,7 +920,7 @@ class FlashArray(object):
         :type volume: str
 
         :returns: A dictionary mapping "name" to hgroup and "vol" to volume.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("DELETE",
@@ -849,10 +937,44 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing hgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "hgroup/{0}".format(hgroup), kwargs)
+
+    def add_hgroup(self, hgroup, pgroup):
+        """Add an hgroup to a pgroup.
+
+        :param hgroup: Name of the hgroup to add to pgroup.
+        :type hgroup: str
+        :param pgroup: pgroup to which to add hgroup.
+        :type pgroup: str
+
+        :returns: A dictionary mapping "name" to hgroup and "protection_group"
+                  to pgroup.
+        :rtype: ResponseDict
+
+        """
+        return self._request("POST", "hgroup/{0}/pgroup/{1}".format(hgroup, pgroup))
+
+    def remove_hgroup(self, hgroup, pgroup):
+        """Remove an hgroup from a pgroup.
+
+        :param hgroup: Name of the hgroup to remove from pgroup.
+        :type hgroup: str
+        :param pgroup: pgroup from which to remove hgroup.
+        :type pgroup: str
+
+        :returns: A dictionary mapping "name" to hgroup and "protection_group"
+                  to pgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.7 or later.
+
+        """
+        return self._request("DELETE", "hgroup/{0}/pgroup/{1}".format(hgroup, pgroup))
 
     def list_hgroup_connections(self, hgroup):
         """Return a list of dictionaries describing shared connected volumes.
@@ -861,7 +983,7 @@ class FlashArray(object):
         :type hgroup: str
 
         :returns: A list of dictionaries describing hgroup's connections.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "hgroup/{0}/volume".format(hgroup))
@@ -875,7 +997,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing each hgroup.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "hgroup", kwargs)
@@ -889,7 +1011,7 @@ class FlashArray(object):
         :type name: str
 
         :returns: A dictionary mapping "name" to name.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.set_hgroup(hgroup, name=name)
@@ -905,7 +1027,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing hgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("PUT", "hgroup/{0}".format(hgroup), kwargs)
@@ -921,7 +1043,7 @@ class FlashArray(object):
         :type interface: str
 
         :returns: A dictionary describing the interface.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.set_network_interface(interface, enabled=False)
@@ -933,7 +1055,7 @@ class FlashArray(object):
         :type interface: str
 
         :returns: A dictionary describing the interface.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.set_network_interface(interface, enabled=True)
@@ -945,7 +1067,7 @@ class FlashArray(object):
         :type interface: str
 
         :returns: A dictionary describing the interface.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "network/{0}".format(interface))
@@ -954,7 +1076,7 @@ class FlashArray(object):
         """Get a list of dictionaries describing network interfaces.
 
         :returns: A list of dictionaries describing each network interface.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "network")
@@ -970,7 +1092,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the interface.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("PUT", "network/{0}".format(interface), kwargs)
@@ -988,7 +1110,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created subnet.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1011,7 +1133,7 @@ class FlashArray(object):
         :type subnet: str
 
         :returns: A dictionary mapping "name" to subnet.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1027,7 +1149,7 @@ class FlashArray(object):
         :type subnet: str
 
         :returns: A dictionary describing the subnet.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1043,7 +1165,7 @@ class FlashArray(object):
         :type subnet: str
 
         :returns: A dictionary describing the subnet.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1059,7 +1181,7 @@ class FlashArray(object):
         :type subnet: str
 
         :returns: A dictionary describing the subnet.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1077,7 +1199,7 @@ class FlashArray(object):
 
         :type \*\*kwargs: optional
         :returns: A list of dictionaries describing each subnet.
-        :rtype: list
+        :rtype: ResponseList
 
         .. note::
 
@@ -1095,7 +1217,7 @@ class FlashArray(object):
         :type name: str
 
         :returns: A dictionary describing the renamed subnet.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1115,7 +1237,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the subnet.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1137,7 +1259,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created interface
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1155,7 +1277,7 @@ class FlashArray(object):
         :type interface: str
 
         :returns: A dictionary mapping "name" to interface.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1170,7 +1292,7 @@ class FlashArray(object):
         """Get current DNS settings.
 
         :returns: A dictionary describing current DNS settings.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "dns")
@@ -1184,7 +1306,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing current DNS settings.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("PUT", "dns", kwargs)
@@ -1200,7 +1322,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing each port.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "port", kwargs)
@@ -1216,7 +1338,7 @@ class FlashArray(object):
         :type drive: str
 
         :returns: A dictionary describing drive.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "drive/{0}".format(drive))
@@ -1225,7 +1347,7 @@ class FlashArray(object):
         """Returns a list of dictionaries describing SSD and NVRAM modules.
 
         :returns: A list of dictionaries describing each drive.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "drive")
@@ -1241,7 +1363,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing component.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "hardware/{0}".format(component), kwargs)
@@ -1255,7 +1377,7 @@ class FlashArray(object):
 
         :type \*\*kwargs: optional
         :returns: A list of dictionaries describing each hardware component.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "hardware", kwargs)
@@ -1271,7 +1393,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing component.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("PUT", "hardware/{0}".format(component), kwargs)
@@ -1309,7 +1431,7 @@ class FlashArray(object):
         :returns: A dictionary mapping "name" to admin, "api_token" to the new
                   API token, and "created" to the time the token was created as
                   an ISO formatted string.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("POST", "admin/{0}/apitoken".format(admin))
@@ -1321,7 +1443,7 @@ class FlashArray(object):
         :type admin: str
 
         :returns: A dictionary mapping "name" to admin and "api_token" to None.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("DELETE", "admin/{0}/apitoken".format(admin))
@@ -1333,7 +1455,7 @@ class FlashArray(object):
         :type admin: str
 
         :returns: A dictionary mapping "name" to admin and "publickey" to "\*\*\*\*".
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "admin/{0}".format(admin),
@@ -1348,7 +1470,7 @@ class FlashArray(object):
         :returns: A dictionary mapping "name" to admin, "api_token" to the
                   admin's API token, and "created" to the time the token was
                   created as an ISO formatted string.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "admin/{0}/apitoken".format(admin))
@@ -1359,7 +1481,7 @@ class FlashArray(object):
         :returns: A list of dictionaries mapping "name" to a username and
                   "publickey" to "\*\*\*\*" for each admin with a public
                   key set.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._list_admin(publickey=True)
@@ -1376,7 +1498,7 @@ class FlashArray(object):
                   the admin's API token, and "created" to the time the token was
                   created as an ISO formatted string for each admin with an API
                   token set.
-        :rtype: list
+        :rtype: ResponseList
 
         .. note::
 
@@ -1397,7 +1519,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary mapping "name" to admin and "role" to the admin's role.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1411,7 +1533,7 @@ class FlashArray(object):
         """Clear the admin permission cache.
 
         :returns: A dictionary mapping "name" to "[ALL]" and "role" to None.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1431,7 +1553,7 @@ class FlashArray(object):
 
         :returns: A dictionary mapping "name" to admin and "publickey"
                   to "\*\*\*\*"
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_admin(admin, publickey=key)
@@ -1447,7 +1569,7 @@ class FlashArray(object):
         :type old_password: str
 
         :returns: A dictionary mapping "name" to admin.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_admin(admin, password=new_password,
@@ -1464,7 +1586,7 @@ class FlashArray(object):
         :type check_peer: bool, optional
 
         :returns: A dictionary describing the status of the directory service.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         if check_peer:
@@ -1480,7 +1602,7 @@ class FlashArray(object):
         :type check_peer: bool, optional
 
         :returns: A dictionary describing the status of the directory service.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         if check_peer:
@@ -1496,7 +1618,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the status of the directory service.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "directoryservice", kwargs)
@@ -1510,7 +1632,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the status of the directory service.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("PUT", "directoryservice", kwargs)
@@ -1520,7 +1642,7 @@ class FlashArray(object):
 
         :returns: A dictionary mapping "output" to the output of the directory
                   service test.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.set_directory_service(action="test")
@@ -1539,7 +1661,7 @@ class FlashArray(object):
         """Disable hourly phonehome.
 
         :returns: A dictionary mapping "phonehome" to "disabled".
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_phonehome(enabled=False)
@@ -1549,7 +1671,7 @@ class FlashArray(object):
 
         :returns: A dictionary describing the status of the remote assist
                   connection.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_remote_assist(action="disconnect")
@@ -1558,7 +1680,7 @@ class FlashArray(object):
         """Enable hourly phonehome.
 
         :returns: A dictionary mapping "phonehome" to "enabled".
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_phonehome(enabled=True)
@@ -1568,7 +1690,7 @@ class FlashArray(object):
 
         :returns: A dictionary describing the status of the remote assist
                   connection.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_remote_assist(action="connect")
@@ -1578,7 +1700,7 @@ class FlashArray(object):
 
         :returns: A dictionary describing the current status of a
                   manually-initiated phonehome.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "array/phonehome")
@@ -1588,7 +1710,7 @@ class FlashArray(object):
 
         :returns: A dictionary mapping "phonehome" to "enabled" if hourly
                   phonehome is enabled, mapping to "disabled" otherwise.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.get(phonehome=True)
@@ -1598,7 +1720,7 @@ class FlashArray(object):
 
         :returns: A dictionary describing the current status of the remote
                   assist connection.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "array/remoteassist")
@@ -1615,7 +1737,7 @@ class FlashArray(object):
             action must be one of: ("send_today", "send_yesterday", "send_all", "cancel").
 
         :returns: A dictionary describing the current status of the phonehome request.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_phonehome(action=action)
@@ -1637,7 +1759,7 @@ class FlashArray(object):
         :type message_id: int or str
 
         :returns: A dictionary mapping "id" to message_id.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_message(message_id, flagged=False)
@@ -1649,7 +1771,7 @@ class FlashArray(object):
         :type address: str
 
         :returns: A dictionary mapping "name" to address and "enabled" to True.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("POST", "alert/{0}".format(address))
@@ -1661,7 +1783,7 @@ class FlashArray(object):
         :type address: str
 
         :returns: A dictionary mapping "name" to address.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("DELETE", "alert/{0}".format(address))
@@ -1673,7 +1795,7 @@ class FlashArray(object):
         :type address: str
 
         :returns: A dictionary mapping "name" to address and "enabled" to False.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_alert_recipient(address, enabled=False)
@@ -1685,7 +1807,7 @@ class FlashArray(object):
         :type address: str
 
         :returns: A dictionary mapping "name" to address and "enabled" to True.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_alert_recipient(address, enabled=True)
@@ -1697,7 +1819,7 @@ class FlashArray(object):
         :type message_id: int or str
 
         :returns: A dictionary mapping "id" to message_id.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_message(message_id, flagged=True)
@@ -1710,7 +1832,7 @@ class FlashArray(object):
 
         :returns: A dictionary mapping "name" to address and "enabled" to True
                   if that alert recipient is enabled, False otherwise.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "alert/{0}".format(address))
@@ -1721,7 +1843,7 @@ class FlashArray(object):
         :returns: A list of dictionaries mapping "name" to a recipient's
                   address and "enabled" to True if that recipient is enabled,
                   False otherwise, for each alert recipient.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "alert")
@@ -1735,7 +1857,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing each message.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "message", kwargs)
@@ -1745,7 +1867,7 @@ class FlashArray(object):
 
         :returns: A list of dictionaries describing the test outcome for each
                   recipient.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("PUT", "alert", {"action": "test"})
@@ -1757,7 +1879,7 @@ class FlashArray(object):
         :type address: str
 
         :returns: A dictionary describing the test outcome.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._set_alert_recipient(address, action="test")
@@ -1779,7 +1901,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created SNMP manager.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         data = {"host": host}
@@ -1793,7 +1915,7 @@ class FlashArray(object):
         :type manager: str
 
         :returns: A dictionary mapping "name" to manager.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("DELETE", "snmp/{0}".format(manager))
@@ -1802,7 +1924,7 @@ class FlashArray(object):
         """Return the SNMP v3 engine ID generated for the array.
 
         :returns: A dictionary mapping "engine_id" to the array's SNMP engine ID.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1818,7 +1940,7 @@ class FlashArray(object):
         :type manager: str
 
         :returns: A dictionary describing manager.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("GET", "snmp/{0}".format(manager))
@@ -1827,7 +1949,7 @@ class FlashArray(object):
         """Return a list of dictionaries describing SNMP managers.
 
         :returns: A list of dictionaries describing each SNMP manager.
-        :rtype: list
+        :rtype: ResponseList
 
         """
         return self._request("GET", "snmp")
@@ -1841,7 +1963,7 @@ class FlashArray(object):
         :type name: str
 
         :returns: A dictionary describing the renamed SNMP manager.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.set_snmp_manager(manager, name=name)
@@ -1857,7 +1979,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing manager.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self._request("PUT", "snmp/{0}".format(manager), kwargs)
@@ -1869,7 +1991,7 @@ class FlashArray(object):
         :type manager: str
 
         :returns: A dictionary mapping "output" to the output of the test.
-        :rtype: dict
+        :rtype: ResponseDict
 
         """
         return self.set_snmp_manager(manager, action="test")
@@ -1894,7 +2016,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the connection to the other array.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1918,7 +2040,7 @@ class FlashArray(object):
         :type address: str
 
         :returns: A dictionary mapping "name" to address.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1932,7 +2054,7 @@ class FlashArray(object):
         """Return list of connected arrays.
 
         :returns: A list of dictionaries describing each connection to another array.
-        :rtype: list
+        :rtype: ResponseList
 
         .. note::
 
@@ -1952,7 +2074,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the connection to the other array.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1974,7 +2096,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created pgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -1994,7 +2116,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created snapshot.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2014,7 +2136,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing the created snapshots.
-        :rtype: list
+        :rtype: ResponseList
 
         .. note::
 
@@ -2032,7 +2154,7 @@ class FlashArray(object):
         :type pgroup: str
 
         :returns: A dictionary mapping "name" to pgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2048,7 +2170,7 @@ class FlashArray(object):
         :type pgroup: str
 
         :returns: A dictionary describing pgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2064,7 +2186,7 @@ class FlashArray(object):
         :type pgroup: str
 
         :returns: A dictionary describing pgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2079,7 +2201,7 @@ class FlashArray(object):
         :type pgroup: str
             Name of pgroup for which to disable snapshot schedule.
 
-        :rtype: dict
+        :rtype: ResponseDict
         :returns: A dictionary describing pgroup.
 
         .. note::
@@ -2095,7 +2217,7 @@ class FlashArray(object):
         :type pgroup: str
 
         :returns: A dictionary describing pgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2111,7 +2233,7 @@ class FlashArray(object):
         :type pgroup: str
 
         :returns: A dictionary mapping "name" to pgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2122,7 +2244,7 @@ class FlashArray(object):
                              {"eradicate": True})
 
     def get_pgroup(self, pgroup, **kwargs):
-        """Return dictionary describing a pgroup.
+        """Return dictionary describing a pgroup or snapshot.
 
         :param pgroup: Name of pgroup to get information about.
         :type pgroup: str
@@ -2131,8 +2253,10 @@ class FlashArray(object):
                            **GET pgroup**
         :type \*\*kwargs: optional
 
-        :returns: A dictionary describing pgroup.
-        :rtype: dict
+        :returns: A list describing snapshots of the pgroup if the paramater
+                  snap is passed as True, else a dictionary describing the
+                  pgroup.
+        :rtype: ResponseDict or ResponseList
 
         .. note::
 
@@ -2150,7 +2274,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing each pgroup.
-        :rtype: list
+        :rtype: ResponseList
 
         .. note::
 
@@ -2166,7 +2290,7 @@ class FlashArray(object):
         :type pgroup: str
 
         :returns: A dictionary mapping "name" to pgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2184,7 +2308,7 @@ class FlashArray(object):
         :type name: str
 
         :returns: A dictionary mapping "name" to name.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2204,7 +2328,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing pgroup.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2227,7 +2351,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the configured array certificate.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2237,7 +2361,7 @@ class FlashArray(object):
         return self._request("GET", "cert", kwargs)
 
     def get_certificate_signing_request(self, **kwargs):
-        """Constructs a certificate signing request (CSR) for signing by a
+        """Construct a certificate signing request (CSR) for signing by a
         certificate authority (CA).
 
         :param \*\*kwargs: See the REST API Guide on your array for the
@@ -2246,7 +2370,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary mapping "certificate_signing_request" to the CSR.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2256,7 +2380,7 @@ class FlashArray(object):
         return self._request("GET", "cert/certificate_signing_request", kwargs)
 
     def set_certificate(self, **kwargs):
-        """Creates a self-signed certificate or imports a certificate signed
+        """Create a self-signed certificate or imports a certificate signed
         by a certificate authority (CA).
 
         :param \*\*kwargs: See the REST API Guide on your array for the
@@ -2265,7 +2389,7 @@ class FlashArray(object):
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the configured array certificate.
-        :rtype: dict
+        :rtype: ResponseDict
 
         .. note::
 
@@ -2274,6 +2398,79 @@ class FlashArray(object):
         """
         return self._request("PUT", "cert", kwargs)
 
+    @staticmethod
+    def page_through(page_size, function, *args, **kwargs):
+        """Return an iterator over all pages of a REST operation.
+
+        :param page_size: Number of elements to retrieve per call.
+        :param function: FlashArray function that accepts limit as an argument.
+        :param \*args: Positional arguments to be passed to function.
+        :param \*\*kwargs: Keyword arguments to be passed to function.
+
+        :returns: An iterator of tuples containing a page of results for the
+                  function(\*args, \*\*kwargs) and None, or None and a PureError
+                  if a call to retrieve a page fails.
+        :rtype: iterator
+
+        .. note::
+
+            Requires use of REST API 1.7 or later.
+
+            Only works with functions that accept limit as an argument.
+
+            Iterator will retrieve page_size elements per call
+
+            Iterator will yield None and an error if a call fails. The next
+            call will repeat the same call, unless the caller sends in an
+            alternate page token.
+
+        """
+
+        kwargs["limit"] = page_size
+
+        def get_page(token):
+            page_kwargs = kwargs.copy()
+            if token:
+                page_kwargs["token"] = token
+            return function(*args, **page_kwargs)
+
+        def page_generator():
+            token = None
+            while True:
+                try:
+                    response = get_page(token)
+                    token = response.headers.get("x-next-token")
+                except PureError as err:
+                    yield None, err
+                else:
+                    if response:
+                        sent_token = yield response, None
+                        if sent_token is not None:
+                            token = sent_token
+                    else:
+                        return
+
+        return page_generator()
+
+class ResponseList(list):
+    """List type returned by FlashArray object.
+
+    :ivar dict headers: The headers returned in the request.
+
+    """
+    def __init__(self, l=()):
+        super(ResponseList, self).__init__(l)
+        self.headers = {}
+
+class ResponseDict(dict):
+    """Dict type returned by FlashArray object.
+
+    :ivar dict headers: The headers returned in the request.
+
+    """
+    def __init__(self, d=()):
+        super(ResponseDict, self).__init__(d)
+        self.headers = {}
 
 class PureError(Exception):
     """Exception type raised by FlashArray object.
