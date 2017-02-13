@@ -2004,8 +2004,8 @@ class FlashArray(object):
     def connect_array(self, management_address, connection_key, connection_type, **kwargs):
         """Connect this array with another one.
 
-        :param address: IP address or DNS name of other array.
-        :type address: str
+        :param management_address: IP address or DNS name of other array.
+        :type management_address: str
         :param connection_key: Connection key of other array.
         :type connection_key: str
         :param connection_type: Type(s) of connection desired.
