@@ -2001,11 +2001,11 @@ class FlashArray(object):
     # Note: These methods only work with REST API 1.2 and later
     #
 
-    def connect_array(self, address, connection_key, connection_type, **kwargs):
+    def connect_array(self, management_address, connection_key, connection_type, **kwargs):
         """Connect this array with another one.
 
-        :param address: IP address or DNS name of other array.
-        :type address: str
+        :param management_address: IP address or DNS name of other array.
+        :type management_address: str
         :param connection_key: Connection key of other array.
         :type connection_key: str
         :param connection_type: Type(s) of connection desired.
@@ -2027,7 +2027,7 @@ class FlashArray(object):
             Requires use of REST API 1.2 or later.
 
         """
-        data = {"address": address,
+        data = {"management_address": management_address,
                 "connection_key": connection_key,
                 "type": connection_type}
         data.update(kwargs)
