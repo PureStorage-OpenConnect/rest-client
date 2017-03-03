@@ -2050,6 +2050,20 @@ class FlashArray(object):
         return self._request("DELETE",
                              "array/connection/{0}".format(address))
 
+    def list_array(self, **kwargs):
+        """Return a list of dictionaries describing the array.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET array**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing the array.
+        :rtype: ResponseList
+
+        """
+        return self._request("GET", "array", kwargs)
+
     def list_array_connections(self, **kwargs):
         """Return list of connected arrays.
 
