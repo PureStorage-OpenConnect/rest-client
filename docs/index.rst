@@ -1,4 +1,4 @@
-Pure Storage FlashArray REST Client Documenation
+Pure Storage FlashArray REST Client Documentation
 ================================================
 
 .. toctree::
