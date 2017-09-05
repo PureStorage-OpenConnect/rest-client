@@ -10,10 +10,10 @@ given release of Purity running on the FlashArray.
 import json
 import requests
 
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 
 # The current version of this library.
-VERSION = "1.8.0"
+VERSION = "1.6.1"
 
 
 class FlashArray(object):
@@ -76,6 +76,9 @@ class FlashArray(object):
     """
 
     supported_rest_versions = [
+            "1.11",
+            "1.10",
+            "1.9",
             "1.8",
             "1.7",
             "1.6",
@@ -167,10 +170,10 @@ class FlashArray(object):
             if old_version == self._rest_version:
                 # Got 450 error, but the rest version was supported
                 # Something really unexpected happened.
-                raise PureHTTPError(self._target, self._rest_version, response)
+                raise PureHTTPError(self._target, str(self._rest_version), response)
             return self._request(method, path, data, reestablish_session)
         else:
-            raise PureHTTPError(self._target, self._rest_version, response)
+            raise PureHTTPError(self._target, str(self._rest_version), response)
 
     #
     # REST API session management methods
@@ -189,14 +192,14 @@ class FlashArray(object):
             msg = "Array is incompatible with REST API version {0}"
             raise ValueError(msg.format(version))
 
-        return version
+        return LooseVersion(version)
 
     def _choose_rest_version(self):
         """Return the newest REST API version supported by target array."""
         versions = self._list_available_rest_versions()
-        versions = [x for x in versions if x in self.supported_rest_versions]
+        versions = [LooseVersion(x) for x in versions if x in self.supported_rest_versions]
         if versions:
-            return max(versions, key=StrictVersion)
+            return max(versions)
         else:
             raise PureError(
                 "Library is incompatible with all REST API versions supported"
@@ -227,7 +230,7 @@ class FlashArray(object):
         :rtype: str
 
         """
-        return self._rest_version
+        return str(self._rest_version)
 
     def invalidate_cookie(self):
         """End the REST API session by invalidating the current session cookie.
@@ -1422,19 +1425,21 @@ class FlashArray(object):
         """
         return self._request("PUT", "admin/{0}".format(admin), kwargs)
 
-    def create_api_token(self, admin):
+    def create_api_token(self, admin, **kwargs):
         """Create an API token for an admin.
 
         :param admin: Name of admin for whom to create an API token.
         :type admin: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST admin/:admin/apitoken**
+        :type \*\*kwargs: optional
 
-        :returns: A dictionary mapping "name" to admin, "api_token" to the new
-                  API token, and "created" to the time the token was created as
-                  an ISO formatted string.
+        :returns: A dictionary describing the new API token.
         :rtype: ResponseDict
 
         """
-        return self._request("POST", "admin/{0}/apitoken".format(admin))
+        return self._request("POST", "admin/{0}/apitoken".format(admin), kwargs)
 
     def delete_api_token(self, admin):
         """Delete the API token of an admin.
@@ -1461,15 +1466,17 @@ class FlashArray(object):
         return self._request("GET", "admin/{0}".format(admin),
                              {"publickey": True})
 
-    def get_api_token(self, admin):
-        """Returns a dictionary describing an admin's API token.
+    def get_api_token(self, admin, **kwargs):
+        """Return a dictionary describing an admin's API token.
 
         :param admin: Name of admin whose API token to get.
         :type admin: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET admin/:admin/apitoken**
+        :type \*\*kwargs: optional
 
-        :returns: A dictionary mapping "name" to admin, "api_token" to the
-                  admin's API token, and "created" to the time the token was
-                  created as an ISO formatted string.
+        :returns: A dictionary describing admin's API token.
         :rtype: ResponseDict
 
         """
@@ -1487,17 +1494,15 @@ class FlashArray(object):
         return self._list_admin(publickey=True)
 
     def list_api_tokens(self, **kwargs):
-        """Returns a list of dictionaries describing REST API tokens.
+        """Return a list of dictionaries describing REST API tokens.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
                            **GET admin**
         :type \*\*kwargs: optional
 
-        :returns: A list of dictionaries mapping "name" to admin, "api_token" to
-                  the admin's API token, and "created" to the time the token was
-                  created as an ISO formatted string for each admin with an API
-                  token set.
+        :returns: A list of dictionaries describing the API token of each admin
+                  with an API token set.
         :rtype: ResponseList
 
         .. note::
@@ -2001,11 +2006,11 @@ class FlashArray(object):
     # Note: These methods only work with REST API 1.2 and later
     #
 
-    def connect_array(self, management_address, connection_key, connection_type, **kwargs):
+    def connect_array(self, address, connection_key, connection_type, **kwargs):
         """Connect this array with another one.
 
-        :param management_address: IP address or DNS name of other array.
-        :type management_address: str
+        :param address: IP address or DNS name of other array.
+        :type address: str
         :param connection_key: Connection key of other array.
         :type connection_key: str
         :param connection_type: Type(s) of connection desired.
@@ -2027,7 +2032,7 @@ class FlashArray(object):
             Requires use of REST API 1.2 or later.
 
         """
-        data = {"management_address": management_address,
+        data = {"address": address,
                 "connection_key": connection_key,
                 "type": connection_type}
         data.update(kwargs)
@@ -2123,7 +2128,16 @@ class FlashArray(object):
             Requires use of REST API 1.2 or later.
 
         """
-        return self.create_pgroup_snapshots([source], **kwargs)
+        # In REST 1.4, support was added for snapshotting multiple pgroups. As a
+        # result, the endpoint response changed from an object to an array of
+        # objects. To keep the  response type consistent between REST versions,
+        # we unbox the response when creating a single snapshot.
+        result = self.create_pgroup_snapshots([source], **kwargs)
+        if self._rest_version >= LooseVersion("1.4"):
+            headers = result.headers
+            result = ResponseDict(result[0])
+            result.headers = headers
+        return result
 
     def create_pgroup_snapshots(self, sources, **kwargs):
         """Create snapshots of pgroups from specified sources.
@@ -2451,6 +2465,36 @@ class FlashArray(object):
                         return
 
         return page_generator()
+
+    #
+    # App management methods
+    #
+
+    def get_app(self, app):
+        """Get app attributes.
+
+        :param app: Name of app to get information about.
+        :type app: str
+
+        :returns: A dictionary describing app.
+        :rtype: ResponseDict
+
+        """
+        return self._request("GET", "app/{0}".format(app))
+
+    def list_apps(self, **kwargs):
+        """Returns a list of dictionaries describing apps.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET app**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing each app.
+        :rtype: ResponseList
+
+        """
+        return self._request("GET", "app", kwargs)
 
 class ResponseList(list):
     """List type returned by FlashArray object.

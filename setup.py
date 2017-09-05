@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="purestorage",
-    version="1.8.0",
+    version="1.11.0",
     description="Pure Storage FlashArray REST Client",
     keywords=["pure", "storage", "flasharray", "rest", "client"],
     url="",
