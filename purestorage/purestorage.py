@@ -13,7 +13,7 @@ import requests
 from distutils.version import LooseVersion
 
 # The current version of this library.
-VERSION = "1.6.1"
+VERSION = "1.11.1"
 
 
 class FlashArray(object):
