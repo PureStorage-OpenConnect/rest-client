@@ -10,6 +10,7 @@ setup(
     description="Pure Storage FlashArray REST Client",
     keywords=["pure", "storage", "flasharray", "rest", "client"],
     url="https://github.com/purestorage/rest-client",
+    download_url="https://github.com/purestorage/rest-client/archive/1.11.1.tar.gz"
     author="Pure Storage",
     author_email = "",
     license="BSD 2-Clause",
