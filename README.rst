@@ -48,3 +48,7 @@ Files
 * CHANGES.rst -- Library change log.
 * LICENSE.txt -- Library BSD 2-Clause license.
 * README.txt -- This document.
+
+Documentation
+=====
+http://pure-storage-python-rest-client.readthedocs.io/en/latest/
