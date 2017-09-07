@@ -51,4 +51,4 @@ Files
 
 Documentation
 =====
-http://pure-storage-python-rest-client.readthedocs.io/en/latest/
+http://pure-storage-python-rest-client.readthedocs.io/en/stable/
