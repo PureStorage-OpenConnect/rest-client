@@ -32,11 +32,6 @@ Installation
 
  $ python setup.py install
 
-Documentation
-=============
-
-http://pure-storage-python-rest-client.readthedocs.io/en/stable/
-
 
 Tests
 =====
@@ -44,6 +39,11 @@ From the root directory of the rest-client
 ::
 
  $ PYTHONPATH=$(pwd):$PYTHONPATH py.test test/*.py
+
+
+Documentation
+=====
+http://pure-storage-python-rest-client.readthedocs.io/en/stable/
 
 
 Files
@@ -54,6 +54,3 @@ Files
 * LICENSE.txt -- Library BSD 2-Clause license.
 * README.txt -- This document.
 
-Documentation
-=====
-http://pure-storage-python-rest-client.readthedocs.io/en/stable/
