@@ -32,6 +32,11 @@ Installation
 
  $ python setup.py install
 
+Documentation
+=============
+
+http://pure-storage-python-rest-client.readthedocs.io/en/stable/
+
 
 Tests
 =====
