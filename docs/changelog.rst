@@ -14,4 +14,5 @@ Version Date       Notes
 1.11.0  09/05/2017 Add support for REST 1.9, 1.10, and 1.11
 1.11.1  09/06/2017 Minor setup.py change for new PyPI interface 
 1.11.2  09/07/2017 Minor setup.py change for new PyPI interface 
+1.11.3  09/07/2017 Minor setup.py change for new PyPI interface 
 ======= ========== =====

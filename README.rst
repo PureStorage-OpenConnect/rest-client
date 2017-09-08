@@ -33,6 +33,12 @@ Installation
  $ python setup.py install
 
 
+Documentation
+=============
+
+http://pure-storage-python-rest-client.readthedocs.io/en/stable/
+
+
 Tests
 =====
 From the root directory of the rest-client
@@ -41,9 +47,6 @@ From the root directory of the rest-client
  $ PYTHONPATH=$(pwd):$PYTHONPATH py.test test/*.py
 
 
-Documentation
-=====
-http://pure-storage-python-rest-client.readthedocs.io/en/stable/
 
 
 Files
