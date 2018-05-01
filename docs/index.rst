@@ -1,5 +1,5 @@
 Pure Storage FlashArray REST Client Documentation
-================================================
+=================================================
 
 .. toctree::
     :hidden:

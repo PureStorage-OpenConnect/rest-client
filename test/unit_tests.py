@@ -450,5 +450,5 @@ class TestOtherMethods(TestArrayBase):
 
 class FakeFlashArray(FlashArray):
     """FlashArray with dummy __init__ so attributes can be set directly"""
-    def __init__(self):
+    def __init__(self): #pylint: disable=super-init-not-called
         pass

@@ -13,7 +13,7 @@ import requests
 from distutils.version import LooseVersion
 
 # The current version of this library.
-VERSION = "1.11.3"
+VERSION = "1.14.0"
 
 
 class FlashArray(object):
@@ -39,6 +39,9 @@ class FlashArray(object):
     :type ssl_cert: str, optional
     :param user_agent: String to be used as the HTTP User-Agent for requests.
     :type user_agent: str, optional
+    :param request_kwargs: Keyword arguments that we will pass into the the call
+                           to requests.request.
+    :type request_kwargs: dict, optional
 
     :raises: :class:`PureError`
 
@@ -73,9 +76,22 @@ class FlashArray(object):
         supported by both the target array and this library. In this case, the
         FlashArray object does not attempt to renegotiate the REST API version.
 
+    .. note::
+
+        Valid entries in request_kwargs may vary by your version of requests.
+
+        If you wish to use secure connections, we suggest you use an entry in
+        request_kwargs rather than the verify_https and ssl_cert arguments.
+        (e.g. request_kwargs={"verify": "path/to/ca_bundle"})
+        You should consider these options deprecated, though we will continue
+        to support them for backward compatibility for the foreseeable future.
+
     """
 
     supported_rest_versions = [
+            "1.14",
+            "1.13",
+            "1.12",
             "1.11",
             "1.10",
             "1.9",
@@ -92,7 +108,7 @@ class FlashArray(object):
 
     def __init__(self, target, username=None, password=None, api_token=None,
                  rest_version=None, verify_https=False, ssl_cert=None,
-                 user_agent=None):
+                 user_agent=None, request_kwargs=None):
 
         if not api_token and not (username and password):
             raise ValueError(
@@ -106,8 +122,12 @@ class FlashArray(object):
 
         self._renegotiate_rest_version = False if rest_version else True
 
-        self._verify_https = verify_https
-        self._ssl_cert = ssl_cert
+        self._request_kwargs = dict(request_kwargs or {})
+        if not "verify" in self._request_kwargs:
+            if ssl_cert and verify_https:
+                self._request_kwargs["verify"] = ssl_cert
+            else:
+                self._request_kwargs["verify"] = verify_https
 
         self._user_agent = user_agent
 
@@ -120,27 +140,25 @@ class FlashArray(object):
         self._api_token = (api_token or self._obtain_api_token(username, password))
         self._start_session()
 
+    def _format_path(self, path):
+        return "https://{0}/api/{1}/{2}".format(
+                self._target, self._rest_version, path)
+
     def _request(self, method, path, data=None, reestablish_session=True):
         """Perform HTTP request for REST API."""
-        if path.startswith("https://"):
+        if path.startswith("http"):
             url = path  # For cases where URL of different form is needed.
         else:
-            url = "https://{0}/api/{1}/{2}".format(
-                self._target, self._rest_version, path)
+            url = self._format_path(path)
+
         headers = {"Content-Type": "application/json"}
         if self._user_agent:
             headers['User-Agent'] = self._user_agent
 
         body = json.dumps(data).encode("utf-8")
-        verify = False
-        if self._verify_https:
-            if self._ssl_cert:
-                verify = self._ssl_cert
-            else:
-                verify = True
         try:
             response = requests.request(method, url, data=body, headers=headers,
-                                        cookies=self._cookies, verify=verify)
+                                        cookies=self._cookies, **self._request_kwargs)
         except requests.exceptions.RequestException as err:
             # error outside scope of HTTP status codes
             # e.g. unable to resolve domain name
@@ -208,6 +226,7 @@ class FlashArray(object):
     def _list_available_rest_versions(self):
         """Return a list of the REST API versions supported by the array"""
         url = "https://{0}/api/api_version".format(self._target)
+
         data = self._request("GET", url, reestablish_session=False)
         return data["version"]
 
@@ -325,8 +344,20 @@ class FlashArray(object):
     # Volume and snapshot management methods
     #
 
-    def _set_volume(self, volume, **kwargs):
-        """Perform actions on a volume and return a dictionary describing it."""
+    def set_volume(self, volume, **kwargs):
+        """Set an attribute of a volume.
+
+        :param volume: Name of the volume to be modified.
+        :type volume: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT volume/:volume**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the created volume.
+        :rtype: ResponseDict
+
+        """
         return self._request("PUT", "volume/{0}".format(volume), kwargs)
 
     def create_snapshot(self, volume, **kwargs):
@@ -363,7 +394,7 @@ class FlashArray(object):
         data.update(kwargs)
         return self._request("POST", "volume", data)
 
-    def create_volume(self, volume, size):
+    def create_volume(self, volume, size, **kwargs):
         """Create a volume and return a dictionary describing it.
 
         :param volume: Name of the volume to be created.
@@ -371,6 +402,10 @@ class FlashArray(object):
         :param size: Size in bytes, or string representing the size of the
                      volume to be created.
         :type size: int or str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST volume/:volume**
+        :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created volume.
         :rtype: ResponseDict
@@ -402,7 +437,32 @@ class FlashArray(object):
         ====== ======== ======
 
         """
-        return self._request("POST", "volume/{0}".format(volume), {"size":size})
+        data = {"size": size}
+        data.update(kwargs)
+        return self._request("POST", "volume/{0}".format(volume), data)
+
+    def create_conglomerate_volume(self, volume):
+        """Create a conglomerate volume and return a dictionary describing it.
+
+        :param volume: Name of the volume to be created.
+        :type volume: str
+
+        :returns: A dictionary describing the created conglomerate volume.
+        :rtype: ResponseDict
+
+        .. note::
+
+           This is not a typical volume thus there is no size.  It's main purpose to connect to a
+           host/hgroup to create a PE LUN.  Once the conglomerate volume is connected to a
+           host/hgroup, it is used as a protocol-endpoint to connect a vvol to a host/hgroup to
+           allow traffic.
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self._request("POST", "volume/{0}".format(volume), {"protocol_endpoint": True})
 
     def copy_volume(self, source, dest, **kwargs):
         """Clone a volume and return a dictionary describing the new volume.
@@ -508,7 +568,7 @@ class FlashArray(object):
         ====== ======== ======
 
         """
-        return self._set_volume(volume, size=size, truncate=False)
+        return self.set_volume(volume, size=size, truncate=False)
 
     def get_volume(self, volume, **kwargs):
         """Return a dictionary describing a volume or snapshot.
@@ -642,7 +702,7 @@ class FlashArray(object):
             followed by its previous suffix.
 
         """
-        return self._set_volume(volume, name=name)
+        return self.set_volume(volume, name=name)
 
     def recover_volume(self, volume):
         """Recover a volume that has been destroyed but not eradicated.
@@ -659,7 +719,7 @@ class FlashArray(object):
             destruction or it will be eradicated.
 
         """
-        return self._set_volume(volume, action="recover")
+        return self.set_volume(volume, action="recover")
 
     def truncate_volume(self, volume, size):
         """Truncate a volume to a new, smaller size.
@@ -685,7 +745,27 @@ class FlashArray(object):
             the 24 hours following the truncation.
 
         """
-        return self._set_volume(volume, size=size, truncate=True)
+        return self.set_volume(volume, size=size, truncate=True)
+
+    def move_volume(self, volume, container):
+        """Move a volume to a new pod or vgroup.
+
+        :param volume: Name of the volume to move.
+        :type volume: str
+        :param container: Destination container of the move, either
+                          a pod, a vgroup or "" for the local array.
+        :type container: str
+
+        :returns: a dictionary describing the volume, with new container
+                  reflected in new name.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self.set_volume(volume, container=container)
 
     #
     # Host management methods
@@ -1415,13 +1495,75 @@ class FlashArray(object):
         """
         return self._request("GET", "admin", kwargs)
 
-    def _set_admin(self, admin, **kwargs):
+    def list_admins(self, **kwargs):
+        """Return a list of dictionaries describing local admins.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET admin**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries mapping "name" to a username and
+                  "role" to their role for each local admin on the array.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.14 or later.
+        """
+        return self._list_admin(**kwargs)
+
+    def create_admin(self, admin, **kwargs):
+        """Create an admin.
+
+        :param admin: Name of admin.
+        :type admin: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST admin/:admin**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the new admin.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.14 or later.
+
+        """
+        return self._request("POST", "admin/{0}".format(admin), kwargs)
+
+    def delete_admin(self, admin):
+        """Delete an admin.
+
+        :param admin: Name of admin whose API token is to be deleted.
+        :type admin: str
+
+        :returns: A dictionary mapping "name" to admin and "api_token" to None.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.14 or later.
+        """
+        return self._request("DELETE", "admin/{0}".format(admin))
+
+    def set_admin(self, admin, **kwargs):
         """Set an attribute of an admin.
 
-        For the arguments you can provide to this method, see the REST API Guide
-        on your array for the documentation on the request:
+        :param admin: Name of admin for whom to set an attribute.
+        :type admin: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT admin/:admin**
+        :type \*\*kwargs: optional
 
-        PUT admin/:user.
+        :returns: A dictionary describing the admin.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.14 or later.
         """
         return self._request("PUT", "admin/{0}".format(admin), kwargs)
 
@@ -1452,6 +1594,22 @@ class FlashArray(object):
 
         """
         return self._request("DELETE", "admin/{0}/apitoken".format(admin))
+
+    def get_admin(self, admin):
+        """Return a dictionary describing an admin.
+
+        :param admin: Name of admin to get.
+        :type admin: str
+
+        :returns: A dictionary mapping "name" to admin and "role" to their role.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.14 or later.
+
+        """
+        return self._request("GET", "admin/{0}".format(admin))
 
     def get_publickey(self, admin):
         """Returns a dictionary describing an admin's public key.
@@ -1532,7 +1690,7 @@ class FlashArray(object):
             cache without doing an LDAP lookup to get new permissions.
 
         """
-        return self._set_admin(admin, action="refresh", **kwargs)
+        return self.set_admin(admin, action="refresh", **kwargs)
 
     def refresh_admins(self):
         """Clear the admin permission cache.
@@ -1561,7 +1719,7 @@ class FlashArray(object):
         :rtype: ResponseDict
 
         """
-        return self._set_admin(admin, publickey=key)
+        return self.set_admin(admin, publickey=key)
 
     def set_password(self, admin, new_password, old_password):
         """Set an admin's password.
@@ -1577,7 +1735,7 @@ class FlashArray(object):
         :rtype: ResponseDict
 
         """
-        return self._set_admin(admin, password=new_password,
+        return self.set_admin(admin, password=new_password,
                               old_password=old_password)
 
     # Directory Service methods
@@ -2032,7 +2190,7 @@ class FlashArray(object):
             Requires use of REST API 1.2 or later.
 
         """
-        data = {"address": address,
+        data = {"management_address": address,
                 "connection_key": connection_key,
                 "type": connection_type}
         data.update(kwargs)
@@ -2161,11 +2319,15 @@ class FlashArray(object):
         data.update(kwargs)
         return self._request("POST", "pgroup", data)
 
-    def destroy_pgroup(self, pgroup):
-        """Destroy an existing pgroup.
+    def destroy_pgroup(self, pgroup, **kwargs):
+        """Destroy an existing pgroup or pgroup snapshot.
 
-        :param pgroup: Name of pgroup to be destroyed.
+        :param pgroup: Name of pgroup(snap) to be destroyed.
         :type pgroup: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST pgroup/:pgroup**
+        :type \*\*kwargs: optional
 
         :returns: A dictionary mapping "name" to pgroup.
         :rtype: ResponseDict
@@ -2175,7 +2337,7 @@ class FlashArray(object):
             Requires use of REST API 1.2 or later.
 
         """
-        return self._request("DELETE", "pgroup/{0}".format(pgroup))
+        return self._request("DELETE", "pgroup/{0}".format(pgroup), kwargs)
 
     def disable_pgroup_replication(self, pgroup):
         """Disable replication schedule for pgroup.
@@ -2240,11 +2402,15 @@ class FlashArray(object):
         """
         return self.set_pgroup(pgroup, snap_enabled=True)
 
-    def eradicate_pgroup(self, pgroup):
+    def eradicate_pgroup(self, pgroup, **kwargs):
         """Eradicate a destroyed pgroup.
 
         :param pgroup: Name of pgroup to be eradicated.
         :type pgroup: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **DELETE pgroup/:pgroup**
+        :type \*\*kwargs: optional
 
         :returns: A dictionary mapping "name" to pgroup.
         :rtype: ResponseDict
@@ -2254,8 +2420,9 @@ class FlashArray(object):
             Requires use of REST API 1.2 or later.
 
         """
-        return self._request("DELETE", "pgroup/{0}".format(pgroup),
-                             {"eradicate": True})
+        eradicate = {"eradicate": True}
+        eradicate.update(kwargs)
+        return self._request("DELETE", "pgroup/{0}".format(pgroup), eradicate)
 
     def get_pgroup(self, pgroup, **kwargs):
         """Return dictionary describing a pgroup or snapshot.
@@ -2297,11 +2464,15 @@ class FlashArray(object):
         """
         return self._request("GET", "pgroup", kwargs)
 
-    def recover_pgroup(self, pgroup):
+    def recover_pgroup(self, pgroup, **kwargs):
         """Recover a destroyed pgroup that has not yet been eradicated.
 
         :param pgroup: Name of pgroup to be recovered.
         :type pgroup: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT pgroup/:pgroup**
+        :type \*\*kwargs: optional
 
         :returns: A dictionary mapping "name" to pgroup.
         :rtype: ResponseDict
@@ -2311,7 +2482,7 @@ class FlashArray(object):
             Requires use of REST API 1.2 or later.
 
         """
-        return self.set_pgroup(pgroup, action="recover")
+        return self.set_pgroup(pgroup, action="recover", **kwargs)
 
     def rename_pgroup(self, pgroup, name):
         """Rename a pgroup.
@@ -2351,9 +2522,360 @@ class FlashArray(object):
         """
         return self._request("PUT", "pgroup/{0}".format(pgroup), kwargs)
 
+    def create_vgroup(self, vgroup):
+        """Create a vgroup.
+
+        :param vgroup: Name of vgroup to be created.
+        :type vgroup: str
+
+        :returns: A dictionary mapping "name" to vgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self._request("POST", "vgroup/{0}".format(vgroup))
+
+    def destroy_vgroup(self, vgroup):
+        """Destroy an existing vgroup.
+
+        :param vgroup: Name of vgroup to be destroyed.
+        :type vgroup: str
+
+        :returns: A dictionary mapping "name" to vgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self._request("DELETE", "vgroup/{0}".format(vgroup))
+
+    def eradicate_vgroup(self, vgroup):
+        """Eradicate a destroyed vgroup.
+
+        :param vgroup: Name of vgroup to be eradicated.
+        :type vgroup: str
+
+        :returns: A dictionary mapping "name" to vgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self._request("DELETE", "vgroup/{0}".format(vgroup),
+                             {"eradicate": True})
+
+    def get_vgroup(self, vgroup, **kwargs):
+        """Return dictionary describing a vgroup.
+
+        :param vgroup: Name of vgroup to get information about.
+        :type vgroup: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET vgroup**
+        :type \*\*kwargs: optional
+
+        :returns: A list describing a dictionary describing the
+                  vgroup.
+        :rtype: ResponseDict or ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self._request("GET", "vgroup/{0}".format(vgroup), kwargs)
+
+    def list_vgroups(self, **kwargs):
+        """Return list dictionaries describing each vgroup.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET vgroup**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing each vgroup.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self._request("GET", "vgroup", kwargs)
+
+    def recover_vgroup(self, vgroup):
+        """Recover a destroyed vgroup that has not yet been eradicated.
+
+        :param vgroup: Name of vgroup to be recovered.
+        :type vgroup: str
+
+        :returns: A dictionary mapping "name" to vgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self.set_vgroup(vgroup, action="recover")
+
+    def rename_vgroup(self, vgroup, name):
+        """Rename a vgroup.
+
+        :param vgroup: Current name of vgroup to be renamed.
+        :type vgroup: str
+        :param name: New name of vgroup to be renamed.
+        :type name: str
+
+        :returns: A dictionary mapping "name" to name.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self.set_vgroup(vgroup, name=name)
+
+    def set_vgroup(self, vgroup, **kwargs):
+        """Set an attribute of a vgroup.
+
+        :param vgroup: Name of vgroup for which to set attribute.
+        :type vgroup: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT vgroup/:vgroup**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing vgroup.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
+        return self._request("PUT", "vgroup/{0}".format(vgroup), kwargs)
+    #
+    # Pod management methods
+    # Note: These methods are not supported before REST API 1.13.
+    #
+
+    def _set_pod(self, pod, **kwargs):
+        """Perform actions on a pod and return a dictionary describing it."""
+        return self._request("PUT", "pod/{0}".format(pod), kwargs)
+
+    def create_pod(self, pod):
+        """Create a pod and return a dictionary describing it.
+
+        :param pod: Name of the pod to be created.
+        :type pod: str
+
+        :returns: A dictionary describing the created pod.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        return self._request("POST", "pod/{0}".format(pod))
+
+    def clone_pod(self, source, dest, **kwargs):
+        """Clone an existing pod to a new one.
+
+        :param source: Name of the pod the be cloned.
+        :type source: str
+        :param dest: Name of the target pod to clone into
+        :type dest: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST pod/:pod**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the created pod
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        data = {"source": source}
+        data.update(kwargs)
+        return self._request("POST", "pod/{0}".format(dest), data)
+
+    def destroy_pod(self, pod):
+        """Destroy an existing pod.
+
+        :param pod: Name of the pod to be destroyed.
+        :type pod: str
+
+        :returns: A dictionary mapping "name" to pod, and the time remaining
+                  before the pod is eradicated.
+        :rtype: ResponseDict
+
+        .. warnings also::
+
+            This operation may cause a loss of data. The destroyed pod can
+            be recovered during the 24 hours immediately following its
+            destruction unless it is eradicated before then.
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        return self._request("DELETE", "pod/{0}".format(pod))
+
+    def eradicate_pod(self, pod):
+        """Eradicate a destroyed pod.
+
+        :param pod: Name of the pod to be eradicated.
+        :type pod: str
+
+        :returns: A dictionary mapping "name" to pod.
+        :rtype: ResponseDict
+
+        .. note::
+
+            This operation fails if pod is not destroyed.
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        .. warnings also::
+
+            This operation may permanently erase data and the pod cannot
+            be recovered.
+
+        """
+        return self._request("DELETE", "pod/{0}".format(pod),
+                             {"eradicate": True})
+
+    def get_pod(self, pod, **kwargs):
+        """Return a dictionary describing a pod.
+
+        :param pod: Name of the pod to get information about.
+        :type pod: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET pod/:pod**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the pod.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        return self._request("GET", "pod/{0}".format(pod), kwargs)
+
+    def add_pod(self, pod, array):
+        """Add arrays to a pod.
+
+        :param pod: Name of the pod.
+        :type pod: str
+        :param array: Array to add to pod.
+        :type array: str
+
+        :returns: A dictionary mapping "name" to pod and "array" to the pod's
+                  new array list.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        return self._request("POST", "pod/{0}/array/{1}".format(pod, array))
+
+    def remove_pod(self, pod, array):
+        """Remove arrays from a pod.
+
+        :param pod: Name of the pod.
+        :type pod: str
+        :param array: Array to remove from pod.
+        :type array: str
+
+        :returns: A dictionary mapping "name" to pod and "array" to the pod's
+                  new array list.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        return self._request("DELETE", "pod/{0}/array/{1}".format(pod, array))
+
+    def list_pods(self, **kwargs):
+        """Return a list of dictionaries describing each pod.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET pod**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing each pod.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        return self._request("GET", "pod", kwargs)
+
+    def rename_pod(self, pod, name):
+        """Rename a pod.
+
+        :param pod: Name of the pod to be renamed.
+        :type pod: str
+        :param name: New name of pod to be renamed.
+        :type name: str
+
+        :returns: A dictionary mapping "name" to name.
+        :rtype: ResponseDict
+
+        .. note::
+
+            All pod objects in the named pod also are renamed to the new name,
+            followed by its previous suffix.
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        return self._set_pod(pod, name=name)
+
+    def recover_pod(self, pod):
+        """Recover a pod that has been destroyed but not eradicated.
+
+        :param pod: Name of pod to be recovered.
+        :type pod: str
+
+        :returns: A dictionary mapping "name" to pod, and the time remaining
+                  which will now be null.
+        :rtype: ResponseDict
+
+        .. note::
+
+            This must be done within the 24 hours following a pod's
+            destruction or it will be eradicated.
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+        """
+        return self._set_pod(pod, action="recover")
+
     #
     # SSL Certificate related methods.
-    # Note: These methods only work with REST API 1.3 and later
+    # Note: These methods are not supported before REST API 1.3.
     #
 
     def get_certificate(self, **kwargs):
@@ -2372,7 +2894,40 @@ class FlashArray(object):
             Requires use of REST API 1.3 or later.
 
         """
-        return self._request("GET", "cert", kwargs)
+
+        if self._rest_version >= LooseVersion("1.12"):
+            return self._request("GET",
+                "cert/{0}".format(kwargs.pop('name', 'management')), kwargs)
+        else:
+            return self._request("GET", "cert", kwargs)
+
+    def list_certificates(self):
+        """Get the attributes of the current array certificate.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET cert**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing all configured certificates.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+        """
+
+        # This call takes no parameters.
+        if self._rest_version >= LooseVersion("1.12"):
+            return self._request("GET", "cert")
+        else:
+            # If someone tries to call this against a too-early api version,
+            # do the best we can to provide expected behavior.
+            cert = self._request("GET", "cert")
+            out = ResponseList([cert])
+            out.headers = cert.headers
+            return out
 
     def get_certificate_signing_request(self, **kwargs):
         """Construct a certificate signing request (CSR) for signing by a
@@ -2390,12 +2945,22 @@ class FlashArray(object):
 
             Requires use of REST API 1.3 or later.
 
+            In version 1.12, purecert was expanded to allow manipulation
+            of multiple certificates, by name.  To preserve backwards compatibility,
+            the default name, if none is specified, for this version is 'management'
+            which acts on the certificate previously managed by this command.
+
         """
-        return self._request("GET", "cert/certificate_signing_request", kwargs)
+        if self._rest_version >= LooseVersion("1.12"):
+            return self._request("GET",
+                "cert/certificate_signing_request/{0}".format(
+                    kwargs.pop('name', 'management')), kwargs)
+        else:
+            return self._request("GET", "cert/certificate_signing_request", kwargs)
 
     def set_certificate(self, **kwargs):
-        """Create a self-signed certificate or imports a certificate signed
-        by a certificate authority (CA).
+        """Modify an existing certificate, creating a new self signed one
+        or importing a certificate signed by a certificate authority (CA).
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2409,8 +2974,235 @@ class FlashArray(object):
 
             Requires use of REST API 1.3 or later.
 
+            In version 1.12, purecert was expanded to allow manipulation
+            of multiple certificates, by name.  To preserve backwards compatibility,
+            the default name, if none is specified, for this version is 'management'
+            which acts on the certificate previously managed by this command.
+
         """
-        return self._request("PUT", "cert", kwargs)
+        if self._rest_version >= LooseVersion("1.12"):
+            return self._request("PUT",
+                "cert/{0}".format(kwargs.pop('name', 'management')), kwargs)
+        else:
+            return self._request("PUT", "cert", kwargs)
+
+
+    #
+    # New SSL Certificate related methods.
+    # Note: These methods are not supported before REST API 1.12.
+    #
+
+    def create_certificate(self, name, **kwargs):
+        """Create a new managed certificate.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT cert**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the configured array certificate.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+            You may not create the management certificate, as it already exists.
+
+        """
+        return self._request("POST", "cert/{0}".format(name), kwargs)
+
+    def delete_certificate(self, name, **kwargs):
+        """Delete a managed certificate.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT cert**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the configured array certificate.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+            You may not delete the management certificate.
+
+        """
+        return self._request("DELETE", "cert/{0}".format(name), kwargs)
+
+    #
+    # New methods for KMIP configuration, introduced with version 1.12
+    #
+
+    def create_kmip(self, name, **kwargs):
+        """Create a new kmip configuration.
+
+        :param name: The name of the KMIP config to operate on.
+        :type name: string
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT kmip**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing the kmip configuration.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+        """
+        return self._request("POST", "kmip/{0}".format(name), kwargs)
+
+    def delete_kmip(self, name):
+        """Delete an existing kmip configuration.
+
+        :param name: The name of the KMIP config to operate on.
+        :type name: string
+
+        :returns: A dictionary containing the name of the deleted kmip configuration.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+        """
+        return self._request("DELETE", "kmip/{0}".format(name))
+
+    def list_kmip(self):
+        """Show all existing kmip configurations.
+
+        :returns: A list of dictionaries containing the requested kmip configuration.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+        """
+        return self._request("GET", "kmip")
+
+    def get_kmip(self, name):
+        """Show an existing kmip configuration.
+
+        :param name: The name of the KMIP config to operate on.
+        :type name: string
+
+        :returns: A list of dictionaries containing the requested kmip configuration.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+        """
+        return self._request("GET", "kmip/{0}".format(name))
+
+    def set_kmip(self, name, **kwargs):
+        """Modify an existing kmip configuration.
+
+        :param name: The name of the KMIP config to operate on.
+        :type name: string
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT kmip**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing the modified kmip configuration.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+        """
+        return self._request("PUT", "kmip/{0}".format(name), kwargs)
+
+    def test_kmip(self, name):
+        """Test a given kmip configuration.
+
+        :param name: The name of the KMIP config to operate on.
+        :type name: string
+
+        :returns: A list of dictionaries containing per-server kmip test results.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.12 or later.
+
+        """
+        return self._request("PUT", "kmip/{0}".format(name), {"action": "test"})
+
+    #
+    # App management methods
+    #
+
+    def get_app(self, app):
+        """Get app attributes.
+
+        :param app: Name of app to get information about.
+        :type app: str
+
+        :returns: A dictionary describing app.
+        :rtype: ResponseDict
+
+        """
+        return self._request("GET", "app/{0}".format(app))
+
+    def list_apps(self, **kwargs):
+        """Returns a list of dictionaries describing apps.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET app**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing each app.
+        :rtype: ResponseList
+
+        """
+        return self._request("GET", "app", kwargs)
+
+    #
+    # SMTP related methods.
+    #
+
+    def get_smtp(self):
+        """Get the attributes of the current smtp server configuration.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET smtp**
+
+        :returns: A dictionary describing the smtp server configuration.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.14 or later.
+        """
+        return self._request("GET", "smtp")
+
+    def set_smtp(self, **kwargs):
+        """Set the attributes of the current smtp server configuration.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT smtp**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the smtp server configuration.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.14 or later.
+        """
+        return self._request("PUT", "smtp", kwargs)
 
     @staticmethod
     def page_through(page_size, function, *args, **kwargs):
@@ -2466,35 +3258,6 @@ class FlashArray(object):
 
         return page_generator()
 
-    #
-    # App management methods
-    #
-
-    def get_app(self, app):
-        """Get app attributes.
-
-        :param app: Name of app to get information about.
-        :type app: str
-
-        :returns: A dictionary describing app.
-        :rtype: ResponseDict
-
-        """
-        return self._request("GET", "app/{0}".format(app))
-
-    def list_apps(self, **kwargs):
-        """Returns a list of dictionaries describing apps.
-
-        :param \*\*kwargs: See the REST API Guide on your array for the
-                           documentation on the request:
-                           **GET app**
-        :type \*\*kwargs: optional
-
-        :returns: A list of dictionaries describing each app.
-        :rtype: ResponseList
-
-        """
-        return self._request("GET", "app", kwargs)
 
 class ResponseList(list):
     """List type returned by FlashArray object.

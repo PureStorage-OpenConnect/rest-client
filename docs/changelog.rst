@@ -12,7 +12,8 @@ Version Date       Notes
 1.6.1   05/30/2016 Minor bug fixes and sync code between GitHub and PyPI
 1.8.0   11/02/2016 Add support for REST 1.7 and 1.8
 1.11.0  09/05/2017 Add support for REST 1.9, 1.10, and 1.11
-1.11.1  09/06/2017 Minor setup.py change for new PyPI interface 
-1.11.2  09/07/2017 Minor setup.py change for new PyPI interface 
-1.11.3  09/07/2017 Minor setup.py change for new PyPI interface 
+1.11.1  09/06/2017 Minor setup.py change for new PyPI interface
+1.11.2  09/07/2017 Minor setup.py change for new PyPI interface
+1.11.3  09/07/2017 Minor setup.py change for new PyPI interface
+1.14.0  04/27/2017 Add support for REST 1.12, 1.13, and 1.14
 ======= ========== =====
