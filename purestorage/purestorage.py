@@ -1116,6 +1116,109 @@ class FlashArray(object):
         return self._request("PUT", "hgroup/{0}".format(hgroup), kwargs)
 
     #
+    # Offload management methods
+    #
+
+    def connect_nfs_offload(self, name, **kwargs):
+        """Connect an nfs offload target.
+
+        :param name: Name of nfs offload target to be connected.
+        :type name: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST nfs_offload/{}**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the nfs target.
+        :rtype: ResponseDict
+
+        """
+        return self._request("POST", "nfs_offload/{0}".format(name), kwargs)
+
+    def disconnect_nfs_offload(self, name):
+        """Disconnect an offload target.
+
+        :param name: Name of offload target to be disconnected.
+        :type name: str
+
+        :returns: A dictionary describing the target.
+        :rtype: ResponseDict
+
+        """
+        return self._request("DELETE", "nfs_offload/{0}".format(name))
+
+    def list_offload(self, **kwargs):
+        """Return a list of dictionaries describing connected offload targets.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET offload**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing offload connections.
+        :rtype: ResponseList
+
+        """
+        return self._request("GET", "offload", kwargs)
+
+    def list_nfs_offload(self, **kwargs):
+        """Return a list of dictionaries describing connected nfs offload targets.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET nfs_offload**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing NFS offload connections.
+        :rtype: ResponseList
+
+        """
+        return self._request("GET", "nfs_offload", kwargs)
+
+    def get_offload(self, name, **kwargs):
+        """Return a dictionary describing the connected offload target.
+
+        :param offload: Name of offload target to get information about.
+        :type offload: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET offload/::offload**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing offload connections.
+        :rtype: ResponseDict
+
+        """
+        # Unbox if a list to accommodate a bug in REST 1.14
+        result = self._request("GET", "offload/{0}".format(name), kwargs)
+        if isinstance(result, list):
+            headers = result.headers
+            result = ResponseDict(result[0])
+            result.headers = headers
+        return result
+
+    def get_nfs_offload(self, name, **kwargs):
+        """Return a dictionary describing the connected nfs offload target.
+
+        :param offload: Name of NFS offload target to get information about.
+        :type offload: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET nfs_offload/::offload**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing nfs offload connections.
+        :rtype: ResponseDict
+
+        """
+        # Unbox if a list to accommodate a bug in REST 1.14
+        result = self._request("GET", "nfs_offload/{0}".format(name), kwargs)
+        if isinstance(result, list):
+            headers = result.headers
+            result = ResponseDict(result[0])
+            result.headers = headers
+        return result
+    #
     # Network management methods
     #
 
