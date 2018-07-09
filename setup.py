@@ -6,11 +6,11 @@ readme.close()
 
 setup(
     name="purestorage",
-    version="1.14.0",
+    version="1.14.1",
     description="Pure Storage FlashArray REST Client",
     keywords=["pure", "storage", "flasharray", "rest", "client"],
     url="https://github.com/purestorage/rest-client",
-    download_url="https://github.com/purestorage/rest-client/archive/1.14.0.tar.gz",
+    download_url="https://github.com/purestorage/rest-client/archive/1.14.1.tar.gz",
     author="Pure Storage",
     author_email = "wes@purestorage.com",
     license="BSD 2-Clause",
