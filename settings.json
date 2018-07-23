@@ -1,0 +1,7 @@
+{
+    "id": "rest-client",
+    "filter": "devops",
+    "image": "https://raw.githubusercontent.com/PureStorage-OpenConnect/swagger/master/images/swagger-header.png",
+    "featured": 1,
+    "priority": 1 
+}
