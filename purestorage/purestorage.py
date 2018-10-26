@@ -13,7 +13,7 @@ import requests
 from distutils.version import LooseVersion
 
 # The current version of this library.
-VERSION = "1.14.0"
+VERSION = "1.16.0"
 
 
 class FlashArray(object):
@@ -89,6 +89,8 @@ class FlashArray(object):
     """
 
     supported_rest_versions = [
+            "1.16",
+            "1.15",
             "1.14",
             "1.13",
             "1.12",
@@ -345,7 +347,7 @@ class FlashArray(object):
     #
 
     def set_volume(self, volume, **kwargs):
-        """Set an attribute of a volume.
+        """Perform actions on a volume and return a dictionary describing it.
 
         :param volume: Name of the volume to be modified.
         :type volume: str
@@ -748,7 +750,7 @@ class FlashArray(object):
         return self.set_volume(volume, size=size, truncate=True)
 
     def move_volume(self, volume, container):
-        """Move a volume to a new pod or vgroup.
+        """Move a volume to a new pod or vgroup
 
         :param volume: Name of the volume to move.
         :type volume: str
@@ -1120,13 +1122,13 @@ class FlashArray(object):
     #
 
     def connect_nfs_offload(self, name, **kwargs):
-        """Connect an nfs offload target.
+        """Connect an offload nfs target.
 
-        :param name: Name of nfs offload target to be connected.
+        :param name: Name of offload nfs target to be connected.
         :type name: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **POST nfs_offload/{}**
+                           **POST offload/nfs/{}**
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the nfs target.
@@ -1135,10 +1137,26 @@ class FlashArray(object):
         """
         return self._request("POST", "nfs_offload/{0}".format(name), kwargs)
 
-    def disconnect_nfs_offload(self, name):
-        """Disconnect an offload target.
+    def connect_s3_offload(self, name, **kwargs):
+        """Connect an offload S3 target.
 
-        :param name: Name of offload target to be disconnected.
+        :param name: Name of offload S3 target to be connected.
+        :type name: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST offload/s3/{}**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the S3 target.
+        :rtype: ResponseDict
+
+        """
+        return self._request("POST", "s3_offload/{0}".format(name), kwargs)
+
+    def disconnect_nfs_offload(self, name):
+        """Disconnect an nfs offload target.
+
+        :param name: Name of nfs offload target to be disconnected.
         :type name: str
 
         :returns: A dictionary describing the target.
@@ -1146,6 +1164,18 @@ class FlashArray(object):
 
         """
         return self._request("DELETE", "nfs_offload/{0}".format(name))
+
+    def disconnect_s3_offload(self, name):
+        """Disconnect an S3 offload target.
+
+        :param name: Name of S3 offload target to be disconnected.
+        :type name: str
+
+        :returns: A dictionary describing the target.
+        :rtype: ResponseDict
+
+        """
+        return self._request("DELETE", "s3_offload/{0}".format(name))
 
     def list_offload(self, **kwargs):
         """Return a list of dictionaries describing connected offload targets.
@@ -1166,7 +1196,7 @@ class FlashArray(object):
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET nfs_offload**
+                           **GET offload/nfs**
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing NFS offload connections.
@@ -1174,6 +1204,20 @@ class FlashArray(object):
 
         """
         return self._request("GET", "nfs_offload", kwargs)
+
+    def list_s3_offload(self, **kwargs):
+        """Return a list of dictionaries describing connected S3 offload targets.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET offload/s3**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing S3 offload connections.
+        :rtype: ResponseList
+
+        """
+        return self._request("GET", "s3_offload", kwargs)
 
     def get_offload(self, name, **kwargs):
         """Return a dictionary describing the connected offload target.
@@ -1185,7 +1229,7 @@ class FlashArray(object):
                            **GET offload/::offload**
         :type \*\*kwargs: optional
 
-        :returns: A dictionary describing offload connections.
+        :returns: A dictionary describing the offload connection.
         :rtype: ResponseDict
 
         """
@@ -1204,10 +1248,10 @@ class FlashArray(object):
         :type offload: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET nfs_offload/::offload**
+                           **GET offload/nfs/::offload**
         :type \*\*kwargs: optional
 
-        :returns: A dictionary describing nfs offload connections.
+        :returns: A dictionary describing the nfs offload connection.
         :rtype: ResponseDict
 
         """
@@ -1218,6 +1262,23 @@ class FlashArray(object):
             result = ResponseDict(result[0])
             result.headers = headers
         return result
+
+    def get_s3_offload(self, name, **kwargs):
+        """Return a dictionary describing the connected S3 offload target.
+
+        :param offload: Name of S3 offload target to get information about.
+        :type offload: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET offload/s3/::offload**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the S3 offload connection.
+        :rtype: ResponseDict
+
+        """
+        return self._request("GET", "s3_offload/{0}".format(name), kwargs)
+
     #
     # Network management methods
     #
@@ -1699,7 +1760,7 @@ class FlashArray(object):
         return self._request("DELETE", "admin/{0}/apitoken".format(admin))
 
     def get_admin(self, admin):
-        """Return a dictionary describing an admin.
+        """Returns a dictionary describing an admin.
 
         :param admin: Name of admin to get.
         :type admin: str
@@ -1912,6 +1973,123 @@ class FlashArray(object):
 
         """
         return self.set_directory_service(action="test")
+
+    def list_directory_service_roles(self, **kwargs):
+        """Get directory service groups for roles.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET directoryservice/role**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing the group
+                  and group base for each role.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.16 or later.
+
+        """
+        return self._request("GET", "directoryservice/role", kwargs)
+
+    def set_directory_service_roles(self, **kwargs):
+        """Set directory service groups for roles.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT directoryservice/role**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing the group
+                  and group base for each role changed.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.16 or later.
+
+        """
+        return self._request("PUT", "directoryservice/role", kwargs)
+
+    #
+    # Global admin methods
+    #
+
+    def get_global_admin_attributes(self):
+        """Return a dictionary describing the existing global admin attributes.
+
+        :returns: A dictionary describing the existing global admin attributes.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.16 or later.
+
+        """
+        return self._request("GET", "admin/settings")
+
+    def set_global_admin_attributes(self, **kwargs):
+        """Set the global admin attributes.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT admin/settings**
+
+        :returns: A dictionary describing the global admin attributes.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.16 or later.
+
+        """
+        return self._request("PUT", "admin/settings", kwargs)
+
+    def list_locked_admins_lockout_info(self):
+        """Return a list of dictionaries describing lockout information for locked admins.
+
+        :returns: A list of dictionaries describing all the locked admins
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.16 or later.
+
+        """
+        return self._list_admin(lockout=True)
+
+    def get_admin_lockout_info(self, admin):
+        """Return a dictionary describing lockout information for a specific admin.
+
+        :param admin: Name of admin whose lockout info is requested
+        :type admin: str
+
+        :returns: A dictionary describing a specific locked admin
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.16 or later.
+
+        """
+        return self._request("GET", "admin/{0}".format(admin), {"lockout": True})
+
+    def unlock_admin(self, admin):
+        """Unlocks an admin
+
+        :param admin: Name of admin to unlock
+        :type admin: str
+
+        :returns: A dictionary describing the newly unlocked admin
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.16 or later.
+
+        """
+        return self._request("DELETE", "admin/{0}/lockout".format(admin))
 
     #
     # Support related methods
@@ -2400,6 +2578,28 @@ class FlashArray(object):
             result.headers = headers
         return result
 
+    def send_pgroup_snapshot(self, source, **kwargs):
+        """ Send an existing pgroup snapshot to target(s)
+
+        :param source: Name of pgroup snapshot to send.
+        :type source: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST pgroup**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing the sent snapshots.
+        :rtype: ResponseList
+
+        .. note::
+
+            Requires use of REST API 1.16 or later.
+
+        """
+        data = {"name": [source], "action":"send"}
+        data.update(kwargs)
+        return self._request("POST", "pgroup", data)
+
     def create_pgroup_snapshots(self, sources, **kwargs):
         """Create snapshots of pgroups from specified sources.
 
@@ -2625,11 +2825,15 @@ class FlashArray(object):
         """
         return self._request("PUT", "pgroup/{0}".format(pgroup), kwargs)
 
-    def create_vgroup(self, vgroup):
+    def create_vgroup(self, vgroup, **kwargs):
         """Create a vgroup.
 
         :param vgroup: Name of vgroup to be created.
         :type vgroup: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST vgroup/:vgroup**
+        :type \*\*kwargs: optional
 
         :returns: A dictionary mapping "name" to vgroup.
         :rtype: ResponseDict
@@ -2639,7 +2843,7 @@ class FlashArray(object):
             Requires use of REST API 1.13 or later.
 
         """
-        return self._request("POST", "vgroup/{0}".format(vgroup))
+        return self._request("POST", "vgroup/{0}".format(vgroup), kwargs)
 
     def destroy_vgroup(self, vgroup):
         """Destroy an existing vgroup.
@@ -2771,15 +2975,35 @@ class FlashArray(object):
     # Note: These methods are not supported before REST API 1.13.
     #
 
-    def _set_pod(self, pod, **kwargs):
-        """Perform actions on a pod and return a dictionary describing it."""
+    def set_pod(self, pod, **kwargs):
+        """Perform actions on a pod and return a dictionary describing it.
+
+        :param pod: Name of the for which to set attribute.
+        :type pod: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                   documentation on the request:
+                   **PUT pod/:pod**
+        :type \*\*kwargs: optional
+
+        :returns: A dictionary describing the created pod.
+        :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.13 or later.
+
+        """
         return self._request("PUT", "pod/{0}".format(pod), kwargs)
 
-    def create_pod(self, pod):
+    def create_pod(self, pod, **kwargs):
         """Create a pod and return a dictionary describing it.
 
         :param pod: Name of the pod to be created.
         :type pod: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                   documentation on the request:
+                   **POST pod**
+        :type \*\*kwargs: optional
 
         :returns: A dictionary describing the created pod.
         :rtype: ResponseDict
@@ -2788,7 +3012,7 @@ class FlashArray(object):
 
             Requires use of REST API 1.13 or later.
         """
-        return self._request("POST", "pod/{0}".format(pod))
+        return self._request("POST", "pod/{0}".format(pod), kwargs)
 
     def clone_pod(self, source, dest, **kwargs):
         """Clone an existing pod to a new one.
@@ -2898,14 +3122,17 @@ class FlashArray(object):
         """
         return self._request("POST", "pod/{0}/array/{1}".format(pod, array))
 
-    def remove_pod(self, pod, array):
+    def remove_pod(self, pod, array, **kwargs):
         """Remove arrays from a pod.
 
         :param pod: Name of the pod.
         :type pod: str
         :param array: Array to remove from pod.
         :type array: str
-
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **DELETE pod/:pod**/array/:array**
+        :type \*\*kwargs: optional
         :returns: A dictionary mapping "name" to pod and "array" to the pod's
                   new array list.
         :rtype: ResponseDict
@@ -2914,7 +3141,7 @@ class FlashArray(object):
 
             Requires use of REST API 1.13 or later.
         """
-        return self._request("DELETE", "pod/{0}/array/{1}".format(pod, array))
+        return self._request("DELETE", "pod/{0}/array/{1}".format(pod, array), kwargs)
 
     def list_pods(self, **kwargs):
         """Return a list of dictionaries describing each pod.
@@ -2953,7 +3180,7 @@ class FlashArray(object):
 
             Requires use of REST API 1.13 or later.
         """
-        return self._set_pod(pod, name=name)
+        return self.set_pod(pod, name=name)
 
     def recover_pod(self, pod):
         """Recover a pod that has been destroyed but not eradicated.
@@ -2974,7 +3201,7 @@ class FlashArray(object):
 
             Requires use of REST API 1.13 or later.
         """
-        return self._set_pod(pod, action="recover")
+        return self.set_pod(pod, action="recover")
 
     #
     # SSL Certificate related methods.
@@ -3241,11 +3468,16 @@ class FlashArray(object):
         return self._request("PUT", "kmip/{0}".format(name), {"action": "test"})
 
     #
-    # App management methods
+    # Software management methods
     #
 
-    def get_app(self, app):
-        """Get app attributes.
+    def list_app_software(self, **kwargs):
+        """List app software.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET software/app**
+        :type \*\*kwargs: optional
 
         :param app: Name of app to get information about.
         :type app: str
@@ -3254,7 +3486,52 @@ class FlashArray(object):
         :rtype: ResponseDict
 
         """
-        return self._request("GET", "app/{0}".format(app))
+        return self._request("GET", "software/app", kwargs)
+
+    def get_app_software(self, name, **kwargs):
+        """List the specified app software.
+
+        :param name: The name of the app.
+        :type name: string
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET software/app/:app**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing the app.
+        :rtype: ResponseList
+
+        """
+        return self._request("GET", "software/app/{0}".format(name), kwargs)
+
+    def install_app(self, name, **kwargs):
+        """Install the specified app.
+
+        :param name: The name of the app.
+        :type name: string
+
+        :returns: A dictionary describing the app.
+        :rtype: ResponseList
+
+        """
+        return self._request("POST", "software/app/{0}".format(name), kwargs)
+
+    def uninstall_app(self, name, **kwargs):
+        """Uninstall the specified app.
+
+        :param name: The name of the app.
+        :type name: string
+
+        :returns: A dictionary describing the app.
+        :rtype: ResponseList
+
+        """
+        return self._request("DELETE", "software/app/{0}".format(name), kwargs)
+
+    #
+    # App management methods
+    #
 
     def list_apps(self, **kwargs):
         """Returns a list of dictionaries describing apps.
@@ -3269,6 +3546,50 @@ class FlashArray(object):
 
         """
         return self._request("GET", "app", kwargs)
+
+    def get_app(self, name, **kwargs):
+        """Returns a list of dictionaries describing the app.
+
+        :param name: The name of the app.
+        :type name: string
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET app/:app**
+        :type \*\*kwargs: optional
+
+        :returns: A list of dictionaries describing the app.
+        :rtype: ResponseList
+
+        """
+        return self._request("GET", "app/{0}".format(name), kwargs)
+
+    def _set_app(self, name, **kwargs):
+        return self._request("PUT", "app/{0}".format(name), kwargs)
+
+    def enable_app(self, name):
+        """Enable the specified app.
+
+        :param name: Name of app to be enabled.
+        :type name: str
+
+        :returns: A dictionary describing the app.
+        :rtype: ResponseList
+
+        """
+        return self._set_app(name, enabled=True)
+
+    def disable_app(self, name):
+        """Disable the specified app.
+
+        :param name: Name of app to be disabled.
+        :type name: str
+
+        :returns: A dictionary describing the app.
+        :rtype: ResponseList
+
+        """
+        return self._set_app(name, enabled=False)
 
     #
     # SMTP related methods.

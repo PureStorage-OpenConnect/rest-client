@@ -17,4 +17,5 @@ Version Date       Notes
 1.11.3  09/07/2017 Minor setup.py change for new PyPI interface
 1.14.0  04/27/2018 Add support for REST 1.12, 1.13, and 1.14
 1.14.1  07/09/2018 Add support for managing offload targets.
+1.16.0  10/26/2018 Add support for REST 1.15 and 1.16
 ======= ========== =====
