@@ -15,7 +15,6 @@ from distutils.version import LooseVersion
 # The current version of this library.
 VERSION = "1.16.0"
 
-
 class FlashArray(object):
 
     """Represents a Pure Storage FlashArray and exposes administrative APIs.
