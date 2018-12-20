@@ -15,7 +15,6 @@ from distutils.version import LooseVersion
 # The current version of this library.
 VERSION = "1.16.0"
 
-
 class FlashArray(object):
 
     """Represents a Pure Storage FlashArray and exposes administrative APIs.
@@ -161,6 +160,8 @@ class FlashArray(object):
         try:
             response = requests.request(method, url, data=body, headers=headers,
                                         cookies=self._cookies, **self._request_kwargs)
+        except requests.exceptions.ConnectTimeout as timeouterr:
+            raise PureError(timeouterr)
         except requests.exceptions.RequestException as err:
             # error outside scope of HTTP status codes
             # e.g. unable to resolve domain name
@@ -3761,4 +3762,3 @@ class PureHTTPError(PureError):
                "version {1} at {2}: {3}\n{4}")
         return msg.format(self.code, self.rest_version, self.target,
                           self.reason, self.text)
-
