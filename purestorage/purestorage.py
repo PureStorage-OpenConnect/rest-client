@@ -1262,7 +1262,7 @@ class FlashArray(object):
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET se_offload**
+                           **GET s3_offload**
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing S3 offload connections.
