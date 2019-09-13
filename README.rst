@@ -1,5 +1,5 @@
-Pure Storage REST Client
-========================
+Pure Storage FlashArray REST 1.X SDK
+====================================
 This library is designed to provide a simple interface for issuing commands to
 a Pure Storage FlashArray using a REST API. It communicates with the array
 using the python requests HTTP library.
@@ -17,7 +17,7 @@ includes any FlashArray running Purity 3.4.0 or later.
 
 Capabilities
 ============
-This library supports all functionality offered by REST API versions up to 1.17.
+This library supports all functionality offered by FlashArray REST API versions from 1.0 up to 1.17.
 
 Note that different versions of the REST API offer different functionality, and
 some operations may be unusable except on certain versions of the REST API. For

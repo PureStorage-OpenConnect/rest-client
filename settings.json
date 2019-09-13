@@ -1,5 +1,6 @@
 {
     "id": "rest-client",
+    "name": "Python FlashArray REST 1.X SDK",
     "filter": "devops",
     "image": "https://code.purestorage.com/images/8_python%20script.png",
     "featured": 1,
