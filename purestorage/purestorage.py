@@ -13,7 +13,7 @@ import requests
 from distutils.version import LooseVersion
 
 # The current version of this library.
-VERSION = "1.17.0"
+VERSION = "1.18.0"
 
 
 class FlashArray(object):
@@ -89,6 +89,7 @@ class FlashArray(object):
     """
 
     supported_rest_versions = [
+            "1.18",
             "1.17",
             "1.16",
             "1.15",
@@ -358,7 +359,7 @@ class FlashArray(object):
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **PUT array/eula**
+                           **PUT eula**
         :returns: EULA agreement and a dictionary describing the EULA
                   acceptance status on the array.
         :rtype:   ResponseDict
@@ -729,6 +730,30 @@ class FlashArray(object):
 
         """
         return self.set_volume(volume, name=name)
+
+    def promote_volume(self, volume):
+        """Promote a volume
+        :param volume: Name of volume to be promoted.
+        :type volume: str
+
+        :returns: A dictionary mapping "name" to name and "promotion_status" to the
+                  volume's latest promotion status.
+        :rtype: ResponseDict
+
+        """
+        return self.set_volume(volume, requested_promotion_state="promoted")
+
+    def demote_volume(self, volume):
+        """Demote a volume
+        :param volume: Name of volume to be demoted.
+        :type volume: str
+
+        :returns: A dictionary mapping "name" to name and "promotion_status" to the
+                  volume's latest promotion status.
+        :rtype: ResponseDict
+
+        """
+        return self.set_volume(volume, requested_promotion_state="demoted")
 
     def recover_volume(self, volume):
         """Recover a volume that has been destroyed but not eradicated.
@@ -1152,7 +1177,7 @@ class FlashArray(object):
         :type name: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **POST nfs_offload/{}**
+                           **POST offload/nfs/{}**
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the nfs target.
@@ -1168,7 +1193,7 @@ class FlashArray(object):
         :type name: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **POST s3_offload/{}**
+                           **POST offload/s3/{}**
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the S3 target.
@@ -1248,7 +1273,7 @@ class FlashArray(object):
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET nfs_offload**
+                           **GET offload/nfs**
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing NFS offload connections.
@@ -1262,7 +1287,7 @@ class FlashArray(object):
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET s3_offload**
+                           **GET offload/s3**
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing S3 offload connections.
@@ -1276,7 +1301,7 @@ class FlashArray(object):
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET azure_offload**
+                           **GET offload/azure**
         :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing Azure Blob offload connections.
@@ -1314,7 +1339,7 @@ class FlashArray(object):
         :type offload: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET nfs_offload/::offload**
+                           **GET offload/nfs/::offload**
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the nfs offload connection.
@@ -1336,7 +1361,7 @@ class FlashArray(object):
         :type offload: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET s3_offload/::offload**
+                           **GET offload/s3/::offload**
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the S3 offload connection.
@@ -1352,7 +1377,7 @@ class FlashArray(object):
         :type offload: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
-                           **GET azure_offload/::offload**
+                           **GET offload/azure/::offload**
         :type \*\*kwargs: optional
 
         :returns: A dictionary describing the Azure Blob offload connection.
@@ -1394,10 +1419,6 @@ class FlashArray(object):
 
         :param interface: Name of network interface to get information about.
         :type interface: str
-        :param \*\*kwargs: See the REST API Guide on your array for the
-                           documentation on the request:
-                           **GET network/:network_component**
-        :type \*\*kwargs: optional
 
         :returns: A dictionary describing the interface.
         :rtype: ResponseDict
@@ -1407,11 +1428,6 @@ class FlashArray(object):
 
     def list_network_interfaces(self, **kwargs):
         """Get a list of dictionaries describing network interfaces.
-
-        :param \*\*kwargs: See the REST API Guide on your array for the
-                           documentation on the request:
-                           **GET network**
-        :type \*\*kwargs: optional
 
         :returns: A list of dictionaries describing each network interface.
         :rtype: ResponseList
@@ -3511,10 +3527,6 @@ class FlashArray(object):
 
         :param name: The name of the KMIP config to operate on.
         :type name: string
-        :param \*\*kwargs: See the REST API Guide on your array for the
-                           documentation on the request:
-                           **GET kmip/:kmip**
-        :type \*\*kwargs: optional
 
         :returns: A list of dictionaries containing the requested kmip configuration.
         :rtype: ResponseList
@@ -3748,6 +3760,8 @@ class FlashArray(object):
     def schedule_maintenance_window(self, **kwargs):
         """Schedule a maintenance window and return a dictionary describing it.
 
+        :param name: Name of the maintenance window to be scheduled.
+        :type name: str
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
                            **POST maintenance_window**
@@ -3763,10 +3777,8 @@ class FlashArray(object):
     def unschedule_maintenance_window(self, **kwargs):
         """Unschedule a maintenance window and return a dictionary describing it.
 
-        param \*\*kwargs: See the REST API Guide on your array for the
-                           documentation on the request:
-                           **DELETE maintenance_window**
-        :type \*\*kwargs: optional
+        :param name: Name of the maintenance window to be unscheduled.
+        :type name: str
 
         :returns: A dictionary describing the unscheduled maintenance window.
         :rtype: ResponseDict
