@@ -740,6 +740,10 @@ class FlashArray(object):
                   volume's latest promotion status.
         :rtype: ResponseDict
 
+        .. note::
+
+            Requires use of REST API 1.18 or later.
+
         """
         return self.set_volume(volume, requested_promotion_state="promoted")
 
@@ -751,6 +755,10 @@ class FlashArray(object):
         :returns: A dictionary mapping "name" to name and "promotion_status" to the
                   volume's latest promotion status.
         :rtype: ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.18 or later.
 
         """
         return self.set_volume(volume, requested_promotion_state="demoted")
