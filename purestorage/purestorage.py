@@ -733,6 +733,7 @@ class FlashArray(object):
 
     def promote_volume(self, volume):
         """Promote a volume
+
         :param volume: Name of volume to be promoted.
         :type volume: str
 
@@ -749,6 +750,7 @@ class FlashArray(object):
 
     def demote_volume(self, volume):
         """Demote a volume
+
         :param volume: Name of volume to be demoted.
         :type volume: str
 
