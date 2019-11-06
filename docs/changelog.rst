@@ -19,4 +19,5 @@ Version Date       Notes
 1.14.1  07/09/2018 Add support for managing offload targets.
 1.16.0  10/26/2018 Add support for REST 1.15 and 1.16
 1.17.0  08/23/2019 Add support for REST 1.17
+1.18.0  11/05/2019 Add support for REST 1.18
 ======= ========== =====
