@@ -166,7 +166,7 @@ class FlashArray(object):
         except requests.exceptions.RequestException as err:
             # error outside scope of HTTP status codes
             # e.g. unable to resolve domain name
-            raise PureError(err.message)
+            raise PureError(err)
 
         if response.status_code == 200:
             if "application/json" in response.headers.get("Content-Type", ""):
