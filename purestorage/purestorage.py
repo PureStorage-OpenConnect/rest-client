@@ -13,7 +13,7 @@ import requests
 from distutils.version import LooseVersion
 
 # The current version of this library.
-VERSION = "1.18.0"
+VERSION = "1.19.0"
 
 
 class FlashArray(object):
@@ -89,6 +89,7 @@ class FlashArray(object):
     """
 
     supported_rest_versions = [
+            "1.19",
             "1.18",
             "1.17",
             "1.16",
@@ -166,7 +167,10 @@ class FlashArray(object):
         except requests.exceptions.RequestException as err:
             # error outside scope of HTTP status codes
             # e.g. unable to resolve domain name
-            raise PureError(err.message)
+            try:
+                raise PureError(err.message)
+            except:
+                raise PureError(err)
 
         if response.status_code == 200:
             if "application/json" in response.headers.get("Content-Type", ""):
@@ -490,6 +494,62 @@ class FlashArray(object):
 
         """
         return self._request("POST", "volume/{0}".format(volume), {"protocol_endpoint": True})
+
+    def add_tag_to_volume(self, volume, key, value, **kwargs):
+        """Add tag to volume and return a dictionary describing it.
+
+        :param volume: Name of the volume to add tags to.
+        :type volume: str
+        :param key: The Key to a key-value pair of the tag to add to a volume
+        :type volume: str
+        :param key: The Value to a key-value pair of the tag to add to a volume
+        :type volume: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST volume/:volume/tags**
+
+        :returns: A dictionary describing the tags added to the volume.
+        :rtype: ResponseDict
+
+        .. note::
+
+           Add key/value pairs to a volume.
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        data = {"key": key, "value": value}
+        data.update(kwargs)
+        return self._request("POST", "volume/{0}/tags".format(volume), data)
+
+    def remove_tag_from_volume(self, volume, key, **kwargs):
+        """Remove a tag from a volume and return a dictionary describing it.
+
+        :param volume: Name of the volume.
+        :type volume: str
+        :param key: Name of the key to be deleted
+        :type volume: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **DELETE volume/:volume/tags**
+
+        :returns: A dictionary describing the tags added to the volume.
+        :rtype: ResponseDict
+
+        .. note::
+
+           Remove a key from the volume.
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        data = {}
+        data.update(kwargs)
+        return self._request("DELETE", "volume/{0}/tags/{1}".format(volume, key), data)
 
     def copy_volume(self, source, dest, **kwargs):
         """Clone a volume and return a dictionary describing the new volume.
@@ -3328,6 +3388,168 @@ class FlashArray(object):
             Requires use of REST API 1.13 or later.
         """
         return self.set_pod(pod, action="recover")
+
+    #
+    # nearsync methods
+    #
+
+    def create_pod_replica_link(self, local_pod_name, remote_pod_name, **kwargs):
+        """Create replica-link.
+
+        :param local_pod_name: local pod name.
+        :type local_pod_name: str
+        :param remote_pod_name: remote pod name.
+        :type remote_pod_name: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **POST pod/replica-link**
+
+        :returns: a dictionary describing the new replica-link
+        :rtype:   ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        data = {"local_pod_name": local_pod_name,
+                "remote_pod_name": remote_pod_name}
+        data.update(kwargs)
+        return self._request("POST", "pod/replica-link", data)
+
+    def delete_pod_replica_link(self, local_pod_name, remote_pod_name):
+        """Delete replica-link.
+
+        :param local_pod_name: local pod name.
+        :type local_pod_name: str
+        :param remote_pod_name: remote pod name.
+        :type remote_pod_name: str
+
+        :returns: a dictionary describing the deleted replica-link, contains two pod names of the replica-link
+        :rtype:   ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        data = {"local_pod_name": local_pod_name,
+                "remote_pod_name": remote_pod_name}
+
+        return self._request("DELETE", "pod/replica-link", data)
+
+    def list_pod_replica_links(self, **kwargs):
+        """List replica-link.
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **GET pod/replica-link**
+        :returns: a dictionary describing the replica-link
+        :rtype:   ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        data = {}
+        if "local_pod_names" in kwargs and kwargs["local_pod_names"]:
+            local_pod_names = kwargs.get("local_pod_names")
+            builder = ""
+            for local_pod_name in local_pod_names:
+                builder = builder + local_pod_name + ","
+            builder = builder[:-1]
+            data = {"local_pod_names": builder}
+        data.update(kwargs)
+        return self._request("GET", "pod/replica-link", data)
+
+    def _pause_resume_pod_replica_link(self, **kwargs):
+        data = {k: kwargs.get(k) for k in ("local_pod_name", "remote_pod_name", "remote_name", "paused") if kwargs.get(k)}
+        data.update(kwargs)
+        return self._request("PUT", "pod/replica-link", data)
+
+    def pause_pod_replica_link(self, local_pod_name, remote_pod_name, **kwargs):
+        """Create replica-link.
+
+        :param local_pod_name: local pod name.
+        :type local_pod_name: str
+        :param remote_pod_name: remote pod name.
+        :type remote_pod_name: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT  pod/replica-link**
+        :returns: a dictionary describing the replica-link
+        :rtype:   ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        return self._pause_resume_pod_replica_link(
+            local_pod_name=local_pod_name, remote_pod_name=remote_pod_name, paused=True, **kwargs)
+
+    def resume_pod_replica_link(self, local_pod_name, remote_pod_name, **kwargs):
+        """Resume replica-link.
+
+        :param local_pod_name: local pod name.
+        :type local_pod_name: str
+        :param remote_pod_name: remote pod name.
+        :type remote_pod_name: str
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT pod/replica-link**
+        :returns: a dictionary describing the replica-link
+        :rtype:   ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        return self._pause_resume_pod_replica_link(
+            local_pod_name=local_pod_name, remote_pod_name=remote_pod_name, paused=False, **kwargs)
+
+    def _promote_demote_pod(self, pod, **kwargs):
+        return self._request("PUT", "pod/{0}".format(pod), kwargs)
+
+    def promote_pod(self, pod, **kwargs):
+        """Promote pod
+
+        :param pod: Name of pod to be promoted.
+        :type pod: str
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT pod**
+        :returns: a dictionary describing a pod
+        :rtype:   ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        return self._promote_demote_pod(pod, requested_promotion_state="promoted", **kwargs)
+
+    def demote_pod(self, pod, **kwargs):
+        """Demote pod
+        
+        :param pod: Name of pod to be demoted.
+        :type pod: str
+
+        :param \*\*kwargs: See the REST API Guide on your array for the
+                           documentation on the request:
+                           **PUT pod**
+        :returns: a dictionary describing a pod
+        :rtype:   ResponseDict
+
+        .. note::
+
+            Requires use of REST API 1.19 or later.
+
+        """
+        return self._promote_demote_pod(pod, requested_promotion_state="demoted", **kwargs)
 
     #
     # SSL Certificate related methods.
