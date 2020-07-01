@@ -134,6 +134,10 @@ class FlashArray(object):
             else:
                 self._request_kwargs["verify"] = verify_https
 
+        if not verify_https:
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
         self._user_agent = user_agent
 
         self._rest_version = rest_version
