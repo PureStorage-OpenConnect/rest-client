@@ -1,4 +1,4 @@
-"""
+r"""
 This library provides an easy way to script administration tasks for the
 Pure Storage FlashArray.
 
@@ -296,7 +296,7 @@ class FlashArray(object):
         return self._set_console_lock(enabled=False)
 
     def get(self, **kwargs):
-        """Get array attributes.
+        r"""Get array attributes.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -334,7 +334,7 @@ class FlashArray(object):
         return self.set(name=name)
 
     def set(self, **kwargs):
-        """Set array attributes.
+        r"""Set array attributes.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -376,7 +376,7 @@ class FlashArray(object):
     #
 
     def set_volume(self, volume, **kwargs):
-        """Perform actions on a volume and return a dictionary describing it.
+        r"""Perform actions on a volume and return a dictionary describing it.
 
         :param volume: Name of the volume to be modified.
         :type volume: str
@@ -392,7 +392,7 @@ class FlashArray(object):
         return self._request("PUT", "volume/{0}".format(volume), kwargs)
 
     def create_snapshot(self, volume, **kwargs):
-        """Create a snapshot of the given volume.
+        r"""Create a snapshot of the given volume.
 
         :param volume: Name of the volume of which to take a snapshot.
         :type volume: str
@@ -408,7 +408,7 @@ class FlashArray(object):
         return self.create_snapshots([volume], **kwargs)[0]
 
     def create_snapshots(self, volumes, **kwargs):
-        """Create snapshots of the listed volumes.
+        r"""Create snapshots of the listed volumes.
 
         :param volumes: List of names of the volumes to snapshot.
         :type volumes: list of str
@@ -426,7 +426,7 @@ class FlashArray(object):
         return self._request("POST", "volume", data)
 
     def create_volume(self, volume, size, **kwargs):
-        """Create a volume and return a dictionary describing it.
+        r"""Create a volume and return a dictionary describing it.
 
         :param volume: Name of the volume to be created.
         :type volume: str
@@ -552,7 +552,7 @@ class FlashArray(object):
         return self._request("DELETE", "volume/{0}/tags/{1}".format(volume, key), data)
 
     def copy_volume(self, source, dest, **kwargs):
-        """Clone a volume and return a dictionary describing the new volume.
+        r"""Clone a volume and return a dictionary describing the new volume.
 
         :param source: Name of the source volume.
         :type source: str
@@ -658,7 +658,7 @@ class FlashArray(object):
         return self.set_volume(volume, size=size, truncate=False)
 
     def get_volume(self, volume, **kwargs):
-        """Return a dictionary describing a volume or snapshot.
+        r"""Return a dictionary describing a volume or snapshot.
 
         :param volume: Name of the volume to get information about.
         :type volume: str
@@ -714,7 +714,7 @@ class FlashArray(object):
         return self._request("DELETE", "volume/{0}/pgroup/{1}".format(volume, pgroup))
 
     def list_volume_block_differences(self, volume, **kwargs):
-        """Return a list of block differences for the specified volume.
+        r"""Return a list of block differences for the specified volume.
 
         :param volume: Name of the volume to get information about.
         :type volume: str
@@ -759,7 +759,7 @@ class FlashArray(object):
         return self._request("GET", "volume/{0}/hgroup".format(volume), kwargs)
 
     def list_volumes(self, **kwargs):
-        """Return a list of dictionaries describing each volume.
+        r"""Return a list of dictionaries describing each volume.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -893,7 +893,7 @@ class FlashArray(object):
     #
 
     def connect_host(self, host, volume, **kwargs):
-        """Create a connection between a host and a volume.
+        r"""Create a connection between a host and a volume.
 
         :param host: Name of host to connect to volume.
         :type host: str
@@ -912,7 +912,7 @@ class FlashArray(object):
             "POST", "host/{0}/volume/{1}".format(host, volume), kwargs)
 
     def create_host(self, host, **kwargs):
-        """Create a host are return a dictionary describing it.
+        r"""Create a host are return a dictionary describing it.
 
         :param host: Name of host to be created.
         :type host: str
@@ -955,7 +955,7 @@ class FlashArray(object):
                                                                     volume))
 
     def get_host(self, host, **kwargs):
-        """Return a dictionary describing a host.
+        r"""Return a dictionary describing a host.
 
         :param host: Name of host to get information about.
         :type host: str
@@ -1005,7 +1005,7 @@ class FlashArray(object):
         return self._request("DELETE", "host/{0}/pgroup/{1}".format(host, pgroup))
 
     def list_host_connections(self, host, **kwargs):
-        """Return a list of dictionaries describing connected volumes.
+        r"""Return a list of dictionaries describing connected volumes.
 
         :type host: str
             Name of host for which to list connections.
@@ -1021,7 +1021,7 @@ class FlashArray(object):
         return self._request("GET", "host/{0}/volume".format(host), kwargs)
 
     def list_hosts(self, **kwargs):
-        """Return a list of dictionaries describing each host.
+        r"""Return a list of dictionaries describing each host.
 
         :type \*\*kwargs: optional
         :param \*\*kwargs: See the REST API Guide on your array for the
@@ -1049,7 +1049,7 @@ class FlashArray(object):
         return self.set_host(host, name=name)
 
     def set_host(self, host, **kwargs):
-        """Set an attribute of a host.
+        r"""Set an attribute of a host.
 
         :param host: Name of host for which to set attribute.
         :type host: str
@@ -1069,7 +1069,7 @@ class FlashArray(object):
     #
 
     def connect_hgroup(self, hgroup, volume, **kwargs):
-        """Create a shared connection between a host group and a volume.
+        r"""Create a shared connection between a host group and a volume.
 
         :param hgroup: Name of hgroup to connect to volume.
         :type hgroup: str
@@ -1088,7 +1088,7 @@ class FlashArray(object):
             "POST", "hgroup/{0}/volume/{1}".format(hgroup, volume), kwargs)
 
     def create_hgroup(self, hgroup, **kwargs):
-        """Create a host group and return a dictionary describing it.
+        r"""Create a host group and return a dictionary describing it.
 
         :param hgroup: Name of hgroup to be created.
         :type hgroup: str
@@ -1131,7 +1131,7 @@ class FlashArray(object):
                              "hgroup/{0}/volume/{1}".format(hgroup, volume))
 
     def get_hgroup(self, hgroup, **kwargs):
-        """Return a list of dictionaries describing a host group.
+        r"""Return a list of dictionaries describing a host group.
 
         :param hgroup: Name of hgroup to get information about.
         :type hgroup: str
@@ -1193,7 +1193,7 @@ class FlashArray(object):
         return self._request("GET", "hgroup/{0}/volume".format(hgroup))
 
     def list_hgroups(self, **kwargs):
-        """Return a list of dictionaries describing each host group.
+        r"""Return a list of dictionaries describing each host group.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1221,7 +1221,7 @@ class FlashArray(object):
         return self.set_hgroup(hgroup, name=name)
 
     def set_hgroup(self, hgroup, **kwargs):
-        """Set an attribute of a host group.
+        r"""Set an attribute of a host group.
 
         :param hgroup: Name of hgroup for which to set attribute.
         :type hgroup: str
@@ -1241,7 +1241,7 @@ class FlashArray(object):
     #
 
     def connect_nfs_offload(self, name, **kwargs):
-        """Connect an offload nfs target.
+        r"""Connect an offload nfs target.
 
         :param name: Name of offload nfs target to be connected.
         :type name: str
@@ -1257,7 +1257,7 @@ class FlashArray(object):
         return self._request("POST", "nfs_offload/{0}".format(name), kwargs)
 
     def connect_s3_offload(self, name, **kwargs):
-        """Connect an offload S3 target.
+        r"""Connect an offload S3 target.
 
         :param name: Name of offload S3 target to be connected.
         :type name: str
@@ -1325,7 +1325,7 @@ class FlashArray(object):
         return self._request("DELETE", "azure_offload/{0}".format(name))
 
     def list_offload(self, **kwargs):
-        """Return a list of dictionaries describing connected offload targets.
+        r"""Return a list of dictionaries describing connected offload targets.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1339,7 +1339,7 @@ class FlashArray(object):
         return self._request("GET", "offload", kwargs)
 
     def list_nfs_offload(self, **kwargs):
-        """Return a list of dictionaries describing connected nfs offload targets.
+        r"""Return a list of dictionaries describing connected nfs offload targets.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1353,7 +1353,7 @@ class FlashArray(object):
         return self._request("GET", "nfs_offload", kwargs)
 
     def list_s3_offload(self, **kwargs):
-        """Return a list of dictionaries describing connected S3 offload targets.
+        r"""Return a list of dictionaries describing connected S3 offload targets.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1381,7 +1381,7 @@ class FlashArray(object):
         return self._request("GET", "azure_offload", kwargs)
 
     def get_offload(self, name, **kwargs):
-        """Return a dictionary describing the connected offload target.
+        r"""Return a dictionary describing the connected offload target.
 
         :param offload: Name of offload target to get information about.
         :type offload: str
@@ -1403,7 +1403,7 @@ class FlashArray(object):
         return result
 
     def get_nfs_offload(self, name, **kwargs):
-        """Return a dictionary describing the connected nfs offload target.
+        r"""Return a dictionary describing the connected nfs offload target.
 
         :param offload: Name of NFS offload target to get information about.
         :type offload: str
@@ -1425,7 +1425,7 @@ class FlashArray(object):
         return result
 
     def get_s3_offload(self, name, **kwargs):
-        """Return a dictionary describing the connected S3 offload target.
+        r"""Return a dictionary describing the connected S3 offload target.
 
         :param offload: Name of S3 offload target to get information about.
         :type offload: str
@@ -1515,7 +1515,7 @@ class FlashArray(object):
         return self._request("GET", "network", kwargs)
 
     def set_network_interface(self, interface, **kwargs):
-        """Set network interface attributes.
+        r"""Set network interface attributes.
 
         :param interface: Name of network interface for which to set attribute.
         :type interface: str
@@ -1531,7 +1531,7 @@ class FlashArray(object):
         return self._request("PUT", "network/{0}".format(interface), kwargs)
 
     def create_subnet(self, subnet, prefix, **kwargs):
-        """Create a subnet.
+        r"""Create a subnet.
 
         :param subnet: Name of subnet to be created.
         :type subnet: str
@@ -1624,7 +1624,7 @@ class FlashArray(object):
         return self._request("GET", "subnet/{0}".format(subnet))
 
     def list_subnets(self, **kwargs):
-        """Get a list of dictionaries describing subnets.
+        r"""Get a list of dictionaries describing subnets.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1660,7 +1660,7 @@ class FlashArray(object):
         return self.set_subnet(subnet, name=name)
 
     def set_subnet(self, subnet, **kwargs):
-        """Set subnet attributes.
+        r"""Set subnet attributes.
 
         :param subnet: Name of subnet for which to set attribute.
         :type subnet: str
@@ -1680,7 +1680,7 @@ class FlashArray(object):
         return self._request("PUT", "subnet/{0}".format(subnet), kwargs)
 
     def create_vlan_interface(self, interface, subnet, **kwargs):
-        """Create a vlan interface
+        r"""Create a vlan interface
 
         :param interface: Name of interface to be created.
         :type interface: str
@@ -1731,7 +1731,7 @@ class FlashArray(object):
         return self._request("GET", "dns")
 
     def set_dns(self, **kwargs):
-        """Set DNS settings.
+        r"""Set DNS settings.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1747,7 +1747,7 @@ class FlashArray(object):
     # ports
 
     def list_ports(self, **kwargs):
-        """List SAN ports.
+        r"""List SAN ports.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1786,7 +1786,7 @@ class FlashArray(object):
         return self._request("GET", "drive")
 
     def get_hardware(self, component, **kwargs):
-        """Returns a dictionary describing a hardware component.
+        r"""Returns a dictionary describing a hardware component.
 
         :param component: Name of hardware component to get information about.
         :type component: str
@@ -1802,7 +1802,7 @@ class FlashArray(object):
         return self._request("GET", "hardware/{0}".format(component), kwargs)
 
     def list_hardware(self, **kwargs):
-        """Returns a list of dictionaries describing hardware.
+        r"""Returns a list of dictionaries describing hardware.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1816,7 +1816,7 @@ class FlashArray(object):
         return self._request("GET", "hardware", kwargs)
 
     def set_hardware(self, component, **kwargs):
-        """Set an attribute of a hardware component.
+        r"""Set an attribute of a hardware component.
 
         :param component: Name of component for which to set attribute.
         :type component: str
@@ -1846,7 +1846,7 @@ class FlashArray(object):
         return self._request("GET", "admin", kwargs)
 
     def list_admins(self, **kwargs):
-        """Return a list of dictionaries describing local admins.
+        r"""Return a list of dictionaries describing local admins.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -1864,7 +1864,7 @@ class FlashArray(object):
         return self._list_admin(**kwargs)
 
     def create_admin(self, admin, **kwargs):
-        """Create an admin.
+        r"""Create an admin.
 
         :param admin: Name of admin.
         :type admin: str
@@ -1899,7 +1899,7 @@ class FlashArray(object):
         return self._request("DELETE", "admin/{0}".format(admin))
 
     def set_admin(self, admin, **kwargs):
-        """Set an attribute of an admin.
+        r"""Set an attribute of an admin.
 
         :param admin: Name of admin for whom to set an attribute.
         :type admin: str
@@ -1918,7 +1918,7 @@ class FlashArray(object):
         return self._request("PUT", "admin/{0}".format(admin), kwargs)
 
     def create_api_token(self, admin, **kwargs):
-        """Create an API token for an admin.
+        r"""Create an API token for an admin.
 
         :param admin: Name of admin for whom to create an API token.
         :type admin: str
@@ -1962,7 +1962,7 @@ class FlashArray(object):
         return self._request("GET", "admin/{0}".format(admin))
 
     def get_publickey(self, admin):
-        """Returns a dictionary describing an admin's public key.
+        r"""Returns a dictionary describing an admin's public key.
 
         :param admin: Name of admin whose public key to get.
         :type admin: str
@@ -1975,7 +1975,7 @@ class FlashArray(object):
                              {"publickey": True})
 
     def get_api_token(self, admin, **kwargs):
-        """Return a dictionary describing an admin's API token.
+        r"""Return a dictionary describing an admin's API token.
 
         :param admin: Name of admin whose API token to get.
         :type admin: str
@@ -1991,7 +1991,7 @@ class FlashArray(object):
         return self._request("GET", "admin/{0}/apitoken".format(admin))
 
     def list_publickeys(self):
-        """Return a list of dictionaries describing public keys.
+        r"""Return a list of dictionaries describing public keys.
 
         :returns: A list of dictionaries mapping "name" to a username and
                   "publickey" to "\*\*\*\*" for each admin with a public
@@ -2002,7 +2002,7 @@ class FlashArray(object):
         return self._list_admin(publickey=True)
 
     def list_api_tokens(self, **kwargs):
-        """Return a list of dictionaries describing REST API tokens.
+        r"""Return a list of dictionaries describing REST API tokens.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2022,7 +2022,7 @@ class FlashArray(object):
         return self._list_admin(api_token=True, **kwargs)
 
     def refresh_admin(self, admin, **kwargs):
-        """Refresh the admin permission cache for the specified admin.
+        r"""Refresh the admin permission cache for the specified admin.
 
         :param admin: Name of admin whose permission cache is to be refreshed.
         :type admin: str
@@ -2057,7 +2057,7 @@ class FlashArray(object):
                              {"action": "refresh", "clear": True})
 
     def set_publickey(self, admin, key):
-        """Set the public key associated with an admin.
+        r"""Set the public key associated with an admin.
 
         :param admin: Name of admin whose public key is to be set.
         :type admin: str
@@ -2123,7 +2123,7 @@ class FlashArray(object):
         return self.set_directory_service(enabled=True)
 
     def get_directory_service(self, **kwargs):
-        """Return a dictionary describing directory service configuration.
+        r"""Return a dictionary describing directory service configuration.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2137,7 +2137,7 @@ class FlashArray(object):
         return self._request("GET", "directoryservice", kwargs)
 
     def set_directory_service(self, **kwargs):
-        """Set an attribute of the directory service configuration.
+        r"""Set an attribute of the directory service configuration.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2161,7 +2161,7 @@ class FlashArray(object):
         return self.set_directory_service(action="test")
 
     def list_directory_service_roles(self, **kwargs):
-        """Get directory service groups for roles.
+        r"""Get directory service groups for roles.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2180,7 +2180,7 @@ class FlashArray(object):
         return self._request("GET", "directoryservice/role", kwargs)
 
     def set_directory_service_roles(self, **kwargs):
-        """Set directory service groups for roles.
+        r"""Set directory service groups for roles.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2216,7 +2216,7 @@ class FlashArray(object):
         return self._request("GET", "admin/settings")
 
     def set_global_admin_attributes(self, **kwargs):
-        """Set the global admin attributes.
+        r"""Set the global admin attributes.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2479,7 +2479,7 @@ class FlashArray(object):
         return self._request("GET", "alert")
 
     def list_messages(self, **kwargs):
-        """Return a list of alert messages.
+        r"""Return a list of alert messages.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2519,7 +2519,7 @@ class FlashArray(object):
     #
 
     def create_snmp_manager(self, manager, host, **kwargs):
-        """Create an SNMP manager.
+        r"""Create an SNMP manager.
 
         :param manager: Name of manager to be created.
         :type manager: str
@@ -2599,7 +2599,7 @@ class FlashArray(object):
         return self.set_snmp_manager(manager, name=name)
 
     def set_snmp_manager(self, manager, **kwargs):
-        """Set an attribute of an SNMP manager.
+        r"""Set an attribute of an SNMP manager.
 
         :param manager: Name of the SNMP manager for which to set an attribute.
         :type manager: str
@@ -2632,7 +2632,7 @@ class FlashArray(object):
     #
 
     def connect_array(self, address, connection_key, connection_type, **kwargs):
-        """Connect this array with another one.
+        r"""Connect this array with another one.
 
         :param address: IP address or DNS name of other array.
         :type address: str
@@ -2694,7 +2694,7 @@ class FlashArray(object):
         return self._request("GET", "array/connection", kwargs)
 
     def throttle_array_connection(self, address, **kwargs):
-        """Set bandwidth limits on a connection.
+        r"""Set bandwidth limits on a connection.
 
         :param address: IP address or DNS name of other array.
         :type address: str
@@ -2716,7 +2716,7 @@ class FlashArray(object):
     # Protection group related methods
 
     def create_pgroup(self, pgroup, **kwargs):
-        """Create pgroup with specified name.
+        r"""Create pgroup with specified name.
 
         :param pgroup: Name of pgroup to be created.
         :type pgroup: str
@@ -2736,7 +2736,7 @@ class FlashArray(object):
         return self._request("POST", "pgroup/{0}".format(pgroup), kwargs)
 
     def create_pgroup_snapshot(self, source, **kwargs):
-        """Create snapshot of pgroup from specified source.
+        r"""Create snapshot of pgroup from specified source.
 
         :param source: Name of pgroup of which to take snapshot.
         :type source: str
@@ -2765,7 +2765,7 @@ class FlashArray(object):
         return result
 
     def send_pgroup_snapshot(self, source, **kwargs):
-        """ Send an existing pgroup snapshot to target(s)
+        r""" Send an existing pgroup snapshot to target(s)
 
         :param source: Name of pgroup snapshot to send.
         :type source: str
@@ -2787,7 +2787,7 @@ class FlashArray(object):
         return self._request("POST", "pgroup", data)
 
     def create_pgroup_snapshots(self, sources, **kwargs):
-        """Create snapshots of pgroups from specified sources.
+        r"""Create snapshots of pgroups from specified sources.
 
         :param sources: Names of pgroups of which to take snapshots.
         :type sources: list of str
@@ -2809,7 +2809,7 @@ class FlashArray(object):
         return self._request("POST", "pgroup", data)
 
     def destroy_pgroup(self, pgroup, **kwargs):
-        """Destroy an existing pgroup or pgroup snapshot.
+        r"""Destroy an existing pgroup or pgroup snapshot.
 
         :param pgroup: Name of pgroup(snap) to be destroyed.
         :type pgroup: str
@@ -2892,7 +2892,7 @@ class FlashArray(object):
         return self.set_pgroup(pgroup, snap_enabled=True)
 
     def eradicate_pgroup(self, pgroup, **kwargs):
-        """Eradicate a destroyed pgroup.
+        r"""Eradicate a destroyed pgroup.
 
         :param pgroup: Name of pgroup to be eradicated.
         :type pgroup: str
@@ -2914,7 +2914,7 @@ class FlashArray(object):
         return self._request("DELETE", "pgroup/{0}".format(pgroup), eradicate)
 
     def get_pgroup(self, pgroup, **kwargs):
-        """Return dictionary describing a pgroup or snapshot.
+        r"""Return dictionary describing a pgroup or snapshot.
 
         :param pgroup: Name of pgroup to get information about.
         :type pgroup: str
@@ -2936,7 +2936,7 @@ class FlashArray(object):
         return self._request("GET", "pgroup/{0}".format(pgroup), kwargs)
 
     def list_pgroups(self, **kwargs):
-        """Return list dictionaries describing each pgroup.
+        r"""Return list dictionaries describing each pgroup.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -2954,7 +2954,7 @@ class FlashArray(object):
         return self._request("GET", "pgroup", kwargs)
 
     def recover_pgroup(self, pgroup, **kwargs):
-        """Recover a destroyed pgroup that has not yet been eradicated.
+        r"""Recover a destroyed pgroup that has not yet been eradicated.
 
         :param pgroup: Name of pgroup to be recovered.
         :type pgroup: str
@@ -2992,7 +2992,7 @@ class FlashArray(object):
         return self.set_pgroup(pgroup, name=name)
 
     def set_pgroup(self, pgroup, **kwargs):
-        """Set an attribute of a pgroup.
+        r"""Set an attribute of a pgroup.
 
         :param pgroup: Name of pgroup for which to set attribute.
         :type pgroup: str
@@ -3012,7 +3012,7 @@ class FlashArray(object):
         return self._request("PUT", "pgroup/{0}".format(pgroup), kwargs)
 
     def create_vgroup(self, vgroup, **kwargs):
-        """Create a vgroup.
+        r"""Create a vgroup.
 
         :param vgroup: Name of vgroup to be created.
         :type vgroup: str
@@ -3065,7 +3065,7 @@ class FlashArray(object):
                              {"eradicate": True})
 
     def get_vgroup(self, vgroup, **kwargs):
-        """Return dictionary describing a vgroup.
+        r"""Return dictionary describing a vgroup.
 
         :param vgroup: Name of vgroup to get information about.
         :type vgroup: str
@@ -3086,7 +3086,7 @@ class FlashArray(object):
         return self._request("GET", "vgroup/{0}".format(vgroup), kwargs)
 
     def list_vgroups(self, **kwargs):
-        """Return list dictionaries describing each vgroup.
+        r"""Return list dictionaries describing each vgroup.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -3138,7 +3138,7 @@ class FlashArray(object):
         return self.set_vgroup(vgroup, name=name)
 
     def set_vgroup(self, vgroup, **kwargs):
-        """Set an attribute of a vgroup.
+        r"""Set an attribute of a vgroup.
 
         :param vgroup: Name of vgroup for which to set attribute.
         :type vgroup: str
@@ -3162,7 +3162,7 @@ class FlashArray(object):
     #
 
     def set_pod(self, pod, **kwargs):
-        """Perform actions on a pod and return a dictionary describing it.
+        r"""Perform actions on a pod and return a dictionary describing it.
 
         :param pod: Name of the for which to set attribute.
         :type pod: str
@@ -3182,7 +3182,7 @@ class FlashArray(object):
         return self._request("PUT", "pod/{0}".format(pod), kwargs)
 
     def create_pod(self, pod, **kwargs):
-        """Create a pod and return a dictionary describing it.
+        r"""Create a pod and return a dictionary describing it.
 
         :param pod: Name of the pod to be created.
         :type pod: str
@@ -3201,7 +3201,7 @@ class FlashArray(object):
         return self._request("POST", "pod/{0}".format(pod), kwargs)
 
     def clone_pod(self, source, dest, **kwargs):
-        """Clone an existing pod to a new one.
+        r"""Clone an existing pod to a new one.
 
         :param source: Name of the pod the be cloned.
         :type source: str
@@ -3272,7 +3272,7 @@ class FlashArray(object):
                              {"eradicate": True})
 
     def get_pod(self, pod, **kwargs):
-        """Return a dictionary describing a pod.
+        r"""Return a dictionary describing a pod.
 
         :param pod: Name of the pod to get information about.
         :type pod: str
@@ -3309,7 +3309,7 @@ class FlashArray(object):
         return self._request("POST", "pod/{0}/array/{1}".format(pod, array))
 
     def remove_pod(self, pod, array, **kwargs):
-        """Remove arrays from a pod.
+        r"""Remove arrays from a pod.
 
         :param pod: Name of the pod.
         :type pod: str
@@ -3330,7 +3330,7 @@ class FlashArray(object):
         return self._request("DELETE", "pod/{0}/array/{1}".format(pod, array), kwargs)
 
     def list_pods(self, **kwargs):
-        """Return a list of dictionaries describing each pod.
+        r"""Return a list of dictionaries describing each pod.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -3557,7 +3557,7 @@ class FlashArray(object):
     #
 
     def get_certificate(self, **kwargs):
-        """Get the attributes of the current array certificate.
+        r"""Get the attributes of the current array certificate.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -3580,7 +3580,7 @@ class FlashArray(object):
             return self._request("GET", "cert", kwargs)
 
     def list_certificates(self):
-        """Get the attributes of the current array certificate.
+        r"""Get the attributes of the current array certificate.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -3608,7 +3608,7 @@ class FlashArray(object):
             return out
 
     def get_certificate_signing_request(self, **kwargs):
-        """Construct a certificate signing request (CSR) for signing by a
+        r"""Construct a certificate signing request (CSR) for signing by a
         certificate authority (CA).
 
         :param \*\*kwargs: See the REST API Guide on your array for the
@@ -3637,7 +3637,7 @@ class FlashArray(object):
             return self._request("GET", "cert/certificate_signing_request", kwargs)
 
     def set_certificate(self, **kwargs):
-        """Modify an existing certificate, creating a new self signed one
+        r"""Modify an existing certificate, creating a new self signed one
         or importing a certificate signed by a certificate authority (CA).
 
         :param \*\*kwargs: See the REST API Guide on your array for the
@@ -3671,7 +3671,7 @@ class FlashArray(object):
     #
 
     def create_certificate(self, name, **kwargs):
-        """Create a new managed certificate.
+        r"""Create a new managed certificate.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -3691,7 +3691,7 @@ class FlashArray(object):
         return self._request("POST", "cert/{0}".format(name), kwargs)
 
     def delete_certificate(self, name, **kwargs):
-        """Delete a managed certificate.
+        r"""Delete a managed certificate.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -3715,7 +3715,7 @@ class FlashArray(object):
     #
 
     def create_kmip(self, name, **kwargs):
-        """Create a new kmip configuration.
+        r"""Create a new kmip configuration.
 
         :param name: The name of the KMIP config to operate on.
         :type name: string
@@ -3784,7 +3784,7 @@ class FlashArray(object):
         return self._request("GET", "kmip/{0}".format(name), kwargs)
 
     def set_kmip(self, name, **kwargs):
-        """Modify an existing kmip configuration.
+        r"""Modify an existing kmip configuration.
 
         :param name: The name of the KMIP config to operate on.
         :type name: string
@@ -3824,7 +3824,7 @@ class FlashArray(object):
     #
 
     def list_app_software(self, **kwargs):
-        """List app software.
+        r"""List app software.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -3841,7 +3841,7 @@ class FlashArray(object):
         return self._request("GET", "software/app", kwargs)
 
     def get_app_software(self, name, **kwargs):
-        """List the specified app software.
+        r"""List the specified app software.
 
         :param name: The name of the app.
         :type name: string
@@ -3886,7 +3886,7 @@ class FlashArray(object):
     #
 
     def list_apps(self, **kwargs):
-        """Returns a list of dictionaries describing apps.
+        r"""Returns a list of dictionaries describing apps.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -3900,7 +3900,7 @@ class FlashArray(object):
         return self._request("GET", "app", kwargs)
 
     def get_app(self, name, **kwargs):
-        """Returns a list of dictionaries describing the app.
+        r"""Returns a list of dictionaries describing the app.
 
         :param name: The name of the app.
         :type name: string
@@ -4049,7 +4049,7 @@ class FlashArray(object):
     #
 
     def get_smtp(self):
-        """Get the attributes of the current smtp server configuration.
+        r"""Get the attributes of the current smtp server configuration.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -4065,7 +4065,7 @@ class FlashArray(object):
         return self._request("GET", "smtp")
 
     def set_smtp(self, **kwargs):
-        """Set the attributes of the current smtp server configuration.
+        r"""Set the attributes of the current smtp server configuration.
 
         :param \*\*kwargs: See the REST API Guide on your array for the
                            documentation on the request:
@@ -4083,7 +4083,7 @@ class FlashArray(object):
 
     @staticmethod
     def page_through(page_size, function, *args, **kwargs):
-        """Return an iterator over all pages of a REST operation.
+        r"""Return an iterator over all pages of a REST operation.
 
         :param page_size: Number of elements to retrieve per call.
         :param function: FlashArray function that accepts limit as an argument.
