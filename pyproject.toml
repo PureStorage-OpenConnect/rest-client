@@ -1,9 +1,9 @@
 [project]
-name = "rest-client"
+name = "purestorage"
 version = "1.19.0"
 description = "Pure Storage FlashArray client for REST 1.x API"
 authors = [
-    { name = "Pure Storage", email = "wes@purestorage.com" }
+    { name = "Pure Storage", email = "support@purestorage.com" }
 ]
 readme = "README.rst"
 license = {file = "LICENSE.txt"}
