@@ -1,0 +1,26 @@
+[project]
+name = "purestorage"
+version = "1.19.0"
+description = "Pure Storage FlashArray client for REST 1.x API"
+authors = [
+    { name = "Pure Storage", email = "support@purestorage.com" }
+]
+readme = "README.rst"
+license = {file = "LICENSE.txt"}
+requires-python = ">=3.5"
+keywords = ['Pure Storage', 'Python', 'clients', 'REST', 'API', 'FlashArray']
+classifiers = [
+    "Topic :: Software Development :: SDK",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    'requests >=2.20.1, <=2.25.1'
+]
+
+[project.urls]
+"GitHub" = "https://github.com/PureStorage-OpenConnect/rest-client"
+"Documentation" = "https://pure-storage-python-rest-client.readthedocs.io/"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

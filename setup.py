@@ -12,7 +12,7 @@ setup(
     url="https://github.com/purestorage/rest-client",
     download_url="https://github.com/purestorage/rest-client/archive/1.19.0.tar.gz",
     author="Pure Storage",
-    author_email = "wes@purestorage.com",
+    author_email = "support@purestorage.com",
     license="BSD 2-Clause",
     packages=["purestorage"],
     install_requires=["requests"],
