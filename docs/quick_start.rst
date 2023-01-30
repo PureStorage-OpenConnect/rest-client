@@ -51,8 +51,8 @@ API token.
 
     array = FlashArray("localhost", "pureuser", "pureuser")
     array_info = array.get()
-    print "FlashArray {} (version {}) REST session established!".format(
-            array_info['array_name'], array_info['version'])
+    print("FlashArray {} (version {}) REST session established!".format(
+            array_info['array_name'], array_info['version']))
 
 
 To end a session, invalidate your REST cookie:
